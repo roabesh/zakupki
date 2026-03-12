@@ -1,0 +1,47 @@
+shop: Связной
+categories:
+  - id: 224
+    name: Смартфоны
+  - id: 15
+    name: Аксессуары
+
+goods:
+  - id: 4216292
+    category: 224
+    model: apple/iphone/xs-max
+    name: Смартфон Apple iPhone XS Max 512GB (золотистый)
+    price: 110000
+    price_rrc: 116990
+    quantity: 14
+    parameters:
+      Цвет: золотистый
+      Объём встроенной памяти (Гб): 512
+      Тип: смартфон
+      Операционная система: iOS
+      Диагональ (дюйм): "6.5"
+
+  - id: 4216293
+    category: 224
+    model: apple/iphone/xs-max
+    name: Смартфон Apple iPhone XS Max 256GB (серебристый)
+    price: 95000
+    price_rrc: 99990
+    quantity: 7
+    parameters:
+      Цвет: серебристый
+      Объём встроенной памяти (Гб): 256
+      Тип: смартфон
+      Операционная система: iOS
+      Диагональ (дюйм): "6.5"
+
+  - id: 4216313
+    category: 15
+    model: apple/airpods/2
+    name: Наушники Apple AirPods 2
+    price: 14000
+    price_rrc: 14990
+    quantity: 30
+    parameters:
+      Тип: беспроводные наушники
+      Интерфейс: Bluetooth
+      Цвет: белый

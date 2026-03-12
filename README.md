@@ -1,0 +1,154 @@
+# Zakupki — Сервис автоматизации закупок
+
+Backend-сервис для автоматизации закупок в розничной сети. Реализован на Django REST Framework.
+
+## Описание
+
+Сервис позволяет покупателям формировать заказы из товаров нескольких поставщиков через единый каталог. Поставщики управляют своим прайс-листом через API.
+
+### Пользователи системы
+
+**Покупатель:**
+- Регистрация и авторизация через API
+- Просмотр каталога с фильтрацией по магазинам и категориям
+- Формирование корзины из товаров разных поставщиков
+- Оформление и отслеживание заказов
+
+**Поставщик:**
+- Загрузка и обновление прайс-листа (YAML)
+- Управление статусом приёма заказов
+- Просмотр заказов со своими товарами
+
+## Стек технологий
+
+| Компонент | Технология |
+|-----------|-----------|
+| Backend | Python 3.13, Django 5.0 |
+| API | Django REST Framework 3.15 |
+| База данных | PostgreSQL (prod) / SQLite (dev) |
+| Очередь задач | Celery 5.4 + Redis |
+| Документация API | drf-spectacular (Swagger/ReDoc) |
+| Тесты | pytest + pytest-django |
+| Деплой | Docker + Docker Compose |
+
+## Быстрый старт
+
+### Локальная разработка
+
+```bash
+# 1. Клонировать репозиторий
+git clone git@github.com:roabesh/zakupki.git
+cd zakupki
+
+# 2. Создать и активировать виртуальное окружение
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate   # Windows
+
+# 3. Установить зависимости
+pip install -r requirements/development.txt
+
+# 4. Настроить переменные окружения
+cp .env.example .env
+# Отредактировать .env по необходимости
+
+# 5. Применить миграции
+cd backend
+python manage.py migrate
+
+# 6. Создать суперпользователя
+python manage.py createsuperuser
+
+# 7. Запустить сервер
+python manage.py runserver
+```
+
+### Через Docker
+
+```bash
+docker-compose -f docker/docker-compose.yml up --build
+```
+
+## API Документация
+
+После запуска сервера документация доступна:
+- Swagger UI: http://localhost:8000/api/docs/
+- ReDoc: http://localhost:8000/api/redoc/
+- Схема OpenAPI: http://localhost:8000/api/schema/
+
+## Структура проекта
+
+```
+zakupki/
+├── backend/
+│   ├── config/              # Настройки Django
+│   │   ├── settings/
+│   │   │   ├── base.py      # Базовые настройки
+│   │   │   ├── development.py
+│   │   │   └── production.py
+│   │   ├── urls.py
+│   │   └── celery.py
+│   ├── apps/
+│   │   ├── users/           # Пользователи и контакты
+│   │   ├── shops/           # Магазины поставщиков
+│   │   ├── products/        # Каталог товаров
+│   │   └── orders/          # Заказы и корзина
+│   └── tasks/               # Celery-задачи
+├── docs/
+│   ├── api.md               # Спецификация API
+│   └── shop_data_example.yaml
+├── requirements/
+│   ├── base.txt
+│   ├── development.txt
+│   └── production.txt
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── .env.example
+├── manage.py
+└── plan.md
+```
+
+## Импорт товаров
+
+Поставщик загружает прайс через API или по URL файла. Формат YAML:
+
+```yaml
+shop: Название магазина
+categories:
+  - id: 224
+    name: Смартфоны
+goods:
+  - id: 4216292
+    category: 224
+    model: apple/iphone/xs-max
+    name: Смартфон Apple iPhone XS Max 512GB
+    price: 110000
+    price_rrc: 116990
+    quantity: 14
+    parameters:
+      Цвет: золотистый
+      Объём встроенной памяти (Гб): 512
+```
+
+## Запуск тестов
+
+```bash
+cd backend
+pytest
+# С покрытием:
+pytest --cov=. --cov-report=html
+```
+
+## Переменные окружения
+
+Полный список переменных см. в `.env.example`.
+
+| Переменная | Описание | По умолчанию |
+|-----------|---------|------------|
+| SECRET_KEY | Секретный ключ Django | — |
+| DEBUG | Режим отладки | False |
+| DATABASE_URL | URL подключения к БД | SQLite |
+| REDIS_URL | URL Redis | redis://localhost:6379/0 |
+| EMAIL_HOST_USER | Email для отправки | — |
+| ADMIN_EMAIL | Email администратора | — |
