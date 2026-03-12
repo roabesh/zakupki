@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiResponse, inline_serializer
+from rest_framework import serializers as drf_serializers
 
 from apps.products.models import ProductInfo
 from .models import Order, OrderItem, Contact
@@ -27,11 +29,27 @@ class BasketView(APIView):
         basket, _ = Order.objects.get_or_create(user=user, state=Order.OrderState.BASKET)
         return basket
 
+    @extend_schema(
+        responses={200: OrderSerializer},
+        summary='Получить корзину',
+        tags=['Корзина'],
+    )
     def get(self, request):
         basket = self._get_basket(request.user)
         serializer = OrderSerializer(basket)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=inline_serializer('BasketAddRequest', fields={
+            'items': drf_serializers.ListField(child=inline_serializer('BasketItem', fields={
+                'product_info': drf_serializers.IntegerField(),
+                'quantity': drf_serializers.IntegerField(),
+            })),
+        }),
+        responses={200: OpenApiResponse(description='Товары добавлены')},
+        summary='Добавить товары в корзину',
+        tags=['Корзина'],
+    )
     def post(self, request):
         """Добавить товары: {"items": [{"product_info": id, "quantity": n}]}"""
         basket = self._get_basket(request.user)
@@ -59,6 +77,17 @@ class BasketView(APIView):
             return Response({'status': 'partial', 'errors': errors})
         return Response({'status': 'ok'})
 
+    @extend_schema(
+        request=inline_serializer('BasketUpdateRequest', fields={
+            'items': drf_serializers.ListField(child=inline_serializer('BasketUpdateItem', fields={
+                'id': drf_serializers.IntegerField(),
+                'quantity': drf_serializers.IntegerField(),
+            })),
+        }),
+        responses={200: OpenApiResponse(description='Количество обновлено')},
+        summary='Обновить количество в корзине',
+        tags=['Корзина'],
+    )
     def put(self, request):
         """Обновить количество: {"items": [{"id": item_id, "quantity": n}]}"""
         basket = self._get_basket(request.user)
@@ -74,6 +103,14 @@ class BasketView(APIView):
 
         return Response({'status': 'ok'})
 
+    @extend_schema(
+        request=inline_serializer('BasketDeleteRequest', fields={
+            'items': drf_serializers.ListField(child=drf_serializers.IntegerField()),
+        }),
+        responses={200: OpenApiResponse(description='Позиции удалены')},
+        summary='Удалить позиции из корзины',
+        tags=['Корзина'],
+    )
     def delete(self, request):
         """Удалить позиции: {"items": [item_id, ...]}"""
         basket = self._get_basket(request.user)
@@ -94,6 +131,11 @@ class OrderView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: OrderSerializer(many=True)},
+        summary='Список заказов',
+        tags=['Заказы'],
+    )
     def get(self, request):
         orders = (
             Order.objects.filter(user=request.user)
@@ -107,6 +149,17 @@ class OrderView(APIView):
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=inline_serializer('ConfirmOrderRequest', fields={
+            'contact': drf_serializers.IntegerField(required=False, help_text='ID контакта доставки'),
+        }),
+        responses={
+            201: OrderSerializer,
+            400: OpenApiResponse(description='Корзина пуста или контакт не найден'),
+        },
+        summary='Подтвердить заказ',
+        tags=['Заказы'],
+    )
     def post(self, request):
         """Подтвердить корзину. {"contact": contact_id}"""
         try:
@@ -141,6 +194,11 @@ class AdminOrderView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: OrderSerializer(many=True), 403: OpenApiResponse(description='Доступ запрещён')},
+        summary='Все заказы (admin)',
+        tags=['Администратор'],
+    )
     def get(self, request):
         if not request.user.is_staff:
             return Response({'error': 'Доступ запрещён'}, status=status.HTTP_403_FORBIDDEN)
@@ -153,6 +211,22 @@ class AdminOrderView(APIView):
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=inline_serializer('AdminOrderUpdateRequest', fields={
+            'id': drf_serializers.IntegerField(),
+            'state': drf_serializers.ChoiceField(choices=[
+                'new', 'confirmed', 'assembled', 'sent', 'delivered', 'cancelled',
+            ]),
+        }),
+        responses={
+            200: OrderSerializer,
+            400: OpenApiResponse(description='Недопустимый статус'),
+            403: OpenApiResponse(description='Доступ запрещён'),
+            404: OpenApiResponse(description='Заказ не найден'),
+        },
+        summary='Изменить статус заказа (admin)',
+        tags=['Администратор'],
+    )
     def put(self, request):
         """Изменить статус заказа. {"id": order_id, "state": "confirmed"}"""
         if not request.user.is_staff:

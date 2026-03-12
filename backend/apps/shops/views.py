@@ -1,12 +1,15 @@
 import yaml
+from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiResponse, inline_serializer, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+from rest_framework import serializers as drf_serializers
 
 from apps.products.services import load_price_from_url, load_price_from_file, import_price
 from apps.products.models import ProductInfo
-from apps.products.serializers import ProductInfoSerializer
 from .models import Shop
 from .serializers import ShopSerializer, PartnerStateSerializer
 
@@ -16,6 +19,11 @@ class ShopListView(APIView):
 
     permission_classes = []  # доступно без авторизации
 
+    @extend_schema(
+        responses={200: ShopSerializer(many=True)},
+        summary='Список магазинов',
+        tags=['Каталог'],
+    )
     def get(self, request):
         shops = Shop.objects.filter(state=True)
         serializer = ShopSerializer(shops, many=True)
@@ -25,6 +33,28 @@ class ShopListView(APIView):
 class PartnerUpdateView(APIView):
     """Загрузка/обновление прайса поставщика."""
 
+    @extend_schema(
+        request=inline_serializer('PartnerUpdateRequest', fields={
+            'url': drf_serializers.URLField(required=False, help_text='URL YAML-файла с прайсом'),
+            'file': drf_serializers.FileField(required=False, help_text='Загружаемый YAML-файл'),
+        }),
+        responses={
+            200: inline_serializer('PartnerUpdateResponse', fields={
+                'status': drf_serializers.CharField(),
+                'shop': drf_serializers.CharField(),
+                'created': drf_serializers.IntegerField(),
+                'updated': drf_serializers.IntegerField(),
+            }),
+            202: inline_serializer('PartnerUpdateAccepted', fields={
+                'status': drf_serializers.CharField(),
+                'task_id': drf_serializers.CharField(),
+            }),
+            400: OpenApiResponse(description='Ошибка формата или данных'),
+            403: OpenApiResponse(description='Только для поставщиков'),
+        },
+        summary='Загрузить прайс',
+        tags=['Партнёр'],
+    )
     def post(self, request):
         # Только поставщики могут загружать прайс
         if request.user.type != 'supplier':
@@ -67,6 +97,11 @@ class PartnerUpdateView(APIView):
 class PartnerStateView(APIView):
     """Получение и изменение статуса приёма заказов."""
 
+    @extend_schema(
+        responses={200: PartnerStateSerializer, 403: OpenApiResponse(description='Только для поставщиков')},
+        summary='Получить статус магазина',
+        tags=['Партнёр'],
+    )
     def get(self, request):
         if request.user.type != 'supplier':
             return Response(
@@ -81,6 +116,12 @@ class PartnerStateView(APIView):
         serializer = PartnerStateSerializer(shop)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=PartnerStateSerializer,
+        responses={200: PartnerStateSerializer, 403: OpenApiResponse(description='Только для поставщиков')},
+        summary='Изменить статус магазина',
+        tags=['Партнёр'],
+    )
     def put(self, request):
         if request.user.type != 'supplier':
             return Response(
@@ -102,6 +143,10 @@ class PartnerStateView(APIView):
 class PartnerOrdersView(APIView):
     """Список заказов, содержащих товары данного поставщика."""
 
+    @extend_schema(
+        summary='Заказы поставщика',
+        tags=['Партнёр'],
+    )
     def get(self, request):
         if request.user.type != 'supplier':
             return Response(
@@ -134,6 +179,15 @@ class PartnerOrdersView(APIView):
 class PartnerExportView(APIView):
     """Экспорт текущего прайса поставщика в формате YAML."""
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(description='YAML-файл с прайсом', response=OpenApiTypes.BINARY),
+            403: OpenApiResponse(description='Только для поставщиков'),
+            404: OpenApiResponse(description='Магазин не найден'),
+        },
+        summary='Экспорт прайса',
+        tags=['Партнёр'],
+    )
     def get(self, request):
         if request.user.type != 'supplier':
             return Response(
@@ -189,7 +243,6 @@ class PartnerExportView(APIView):
             sort_keys=False,
         )
 
-        from django.http import HttpResponse
         response = HttpResponse(yaml_content, content_type='application/x-yaml')
         response['Content-Disposition'] = f'attachment; filename="{shop.name}_price.yaml"'
         return response
