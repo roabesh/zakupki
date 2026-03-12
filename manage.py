@@ -7,10 +7,16 @@ from pathlib import Path
 
 def main():
     """Run administrative tasks."""
-    # Add backend directory to path so Django can find config and apps
-    backend_dir = Path(__file__).resolve().parent / 'backend'
-    if str(backend_dir) not in sys.path:
+    # В Docker контейнере manage.py и backend/ лежат рядом в /app/
+    # Локально manage.py в корне, backend/ — подпапка
+    base_dir = Path(__file__).resolve().parent
+    backend_dir = base_dir / 'backend'
+    if backend_dir.exists() and str(backend_dir) not in sys.path:
+        # Локальная разработка: добавляем backend/ в путь
         sys.path.insert(0, str(backend_dir))
+    elif str(base_dir) not in sys.path:
+        # В Docker: manage.py скопирован в /app/ вместе с содержимым backend/
+        sys.path.insert(0, str(base_dir))
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
     try:

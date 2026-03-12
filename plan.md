@@ -63,7 +63,7 @@
 
 ---
 
-### Этап 8: Docker [ ]
-- [ ] Dockerfile (multi-stage)
-- [ ] docker-compose.yml: web, db, redis, celery
-- [ ] Проверка: `docker-compose up`
+### Этап 8: Docker [x]
+- [x] Dockerfile (multi-stage: builder + финальный образ)
+- [x] docker-compose.yml: web, db, redis, celery, celery-beat
+- [x] Healthcheck для db и redis, зависимости между сервисами
