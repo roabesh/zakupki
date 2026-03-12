@@ -22,10 +22,10 @@
 
 ---
 
-### Этап 3: Импорт товаров [ ]
-- [ ] POST /api/v1/partner/update/ (url или файл YAML)
-- [ ] Парсинг YAML: shop, categories, goods + parameters
-- [ ] Upsert ProductInfo + ProductParameter по external_id
+### Этап 3: Импорт товаров [x]
+- [x] POST /api/v1/partner/update/ (url или файл YAML)
+- [x] Парсинг YAML: shop, categories, goods + parameters
+- [x] Upsert ProductInfo + ProductParameter по external_id
 
 ---
 
