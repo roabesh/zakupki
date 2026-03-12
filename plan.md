@@ -13,12 +13,12 @@
 
 ---
 
-### Этап 2: Модели данных [ ]
-- [ ] Кастомный User (email, type: buyer/supplier)
-- [ ] Shop (name, url, user, state)
-- [ ] Category, Product, ProductInfo, Parameter, ProductParameter
-- [ ] Contact (phone x1, address x5), Order, OrderItem
-- [ ] Миграции + Django Admin
+### Этап 2: Модели данных [x]
+- [x] Кастомный User (email, type: buyer/supplier)
+- [x] Shop (name, url, user, state)
+- [x] Category, Product, ProductInfo, Parameter, ProductParameter
+- [x] Contact (phone x1, address x5), Order, OrderItem
+- [x] Миграции + Django Admin
 
 ---
 
