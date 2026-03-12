@@ -3,6 +3,16 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
 
+@pytest.fixture(autouse=True)
+def celery_eager(settings):
+    """
+    В тестах Celery задачи выполняются синхронно (без Redis).
+    Применяется ко всем тестам автоматически.
+    """
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = False
+
+
 @pytest.fixture
 def api_client():
     """Неаутентифицированный API-клиент."""

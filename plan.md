@@ -49,10 +49,10 @@
 
 ---
 
-### Этап 6: Celery async [ ]
-- [ ] Настройка Celery + Redis
-- [ ] Async задачи: email, импорт, экспорт
-- [ ] 202 Accepted для долгих операций
+### Этап 6: Celery async [x]
+- [x] Настройка Celery + Redis
+- [x] Async задачи: email, импорт, экспорт
+- [x] 202 Accepted для долгих операций
 
 ---
 

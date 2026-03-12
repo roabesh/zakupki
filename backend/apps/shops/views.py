@@ -44,12 +44,18 @@ class PartnerUpdateView(APIView):
 
         try:
             if url:
-                data = load_price_from_url(url)
+                # Загрузка по URL выполняется асинхронно через Celery
+                from tasks.import_tasks import import_price_from_url_task
+                task = import_price_from_url_task.delay(url, request.user.id)
+                return Response(
+                    {'status': 'accepted', 'task_id': task.id},
+                    status=status.HTTP_202_ACCEPTED,
+                )
             else:
+                # Загрузка файла — выполняется синхронно
                 data = load_price_from_file(file)
-
-            result = import_price(data, request.user)
-            return Response(result)
+                result = import_price(data, request.user)
+                return Response(result)
 
         except Exception as e:
             return Response(

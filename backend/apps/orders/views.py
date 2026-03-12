@@ -128,8 +128,9 @@ class OrderView(APIView):
         basket.state = Order.OrderState.NEW
         basket.save(update_fields=['state', 'contact'])
 
-        # Отправляем email покупателю и администратору
-        _send_order_confirmation(basket)
+        # Отправляем email асинхронно через Celery
+        from tasks.email_tasks import send_order_confirmation_task
+        send_order_confirmation_task.delay(basket.id)
 
         serializer = OrderSerializer(basket)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -175,8 +176,9 @@ class AdminOrderView(APIView):
         order.state = new_state
         order.save(update_fields=['state'])
 
-        # Уведомляем покупателя об изменении статуса
-        _send_status_notification(order)
+        # Уведомляем покупателя асинхронно через Celery
+        from tasks.email_tasks import send_status_notification_task
+        send_status_notification_task.delay(order.id)
 
         serializer = OrderSerializer(order)
         return Response(serializer.data)
