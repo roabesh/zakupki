@@ -12,6 +12,7 @@ const BasketPageLazy = lazy(() => import('./pages/basket/BasketPage'))
 const CheckoutPageLazy = lazy(() => import('./pages/checkout/CheckoutPage'))
 const OrdersPageLazy = lazy(() => import('./pages/orders/OrdersPage'))
 const OrderDetailPageLazy = lazy(() => import('./pages/orders/OrderDetailPage'))
+const ProfilePageLazy = lazy(() => import('./pages/profile/ProfilePage'))
 
 // Временные заглушки для ещё не реализованных страниц
 const ComingSoon = ({ title }: { title: string }) => (
@@ -80,7 +81,10 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute />,
         children: [
-          { path: 'profile', element: <ComingSoon title="Профиль" /> },
+          {
+            path: 'profile',
+            element: <Suspense fallback={<LoadingFallback />}><ProfilePageLazy /></Suspense>,
+          },
         ],
       },
 
