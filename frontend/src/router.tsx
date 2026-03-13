@@ -5,6 +5,7 @@ import PrivateRoute from '@/components/layout/PrivateRoute'
 
 // Ленивая загрузка страниц
 const CatalogPageLazy = lazy(() => import('./pages/catalog/CatalogPage'))
+const ProductDetailPageLazy = lazy(() => import('./pages/catalog/ProductDetailPage'))
 const LoginPageLazy = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPageLazy = lazy(() => import('./pages/auth/RegisterPage'))
 
@@ -37,7 +38,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'products/:id',
-        element: <ComingSoon title="Детали товара" />,
+        element: <Suspense fallback={<LoadingFallback />}><ProductDetailPageLazy /></Suspense>,
       },
       {
         path: 'login',
