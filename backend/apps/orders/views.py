@@ -258,6 +258,42 @@ class AdminOrderView(APIView):
         return Response(serializer.data)
 
 
+class OrderDetailView(APIView):
+    """Детали конкретного заказа покупателя."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={
+            200: OrderSerializer,
+            403: OpenApiResponse(description='Доступ запрещён'),
+            404: OpenApiResponse(description='Заказ не найден'),
+        },
+        summary='Детали заказа',
+        tags=['Заказы'],
+    )
+    def get(self, request, pk):
+        try:
+            order = (
+                Order.objects.prefetch_related(
+                    'order_items__product_info__product',
+                    'order_items__product_info__shop',
+                    'order_items__product_info__product_parameters__parameter',
+                    'contact',
+                )
+                .exclude(state=Order.OrderState.BASKET)
+                .get(pk=pk)
+            )
+        except Order.DoesNotExist:
+            return Response({'error': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.user != request.user:
+            return Response({'error': 'Доступ запрещён'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+
 def _send_order_confirmation(order: Order):
     """Отправляет email покупателю и администратору при подтверждении заказа."""
     items_text = '\n'.join(

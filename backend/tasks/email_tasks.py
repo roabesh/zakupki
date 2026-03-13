@@ -59,6 +59,35 @@ def send_order_confirmation_task(self, order_id: int):
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_registration_email_task(self, user_id: int):
+    """
+    Асинхронная отправка приветственного email после регистрации пользователя.
+    """
+    from apps.users.models import User
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return
+
+    try:
+        send_mail(
+            subject='Добро пожаловать в Zakupki!',
+            message=(
+                f'Здравствуйте!\n\n'
+                f'Вы успешно зарегистрировались в сервисе Zakupki.\n'
+                f'Ваш email: {user.email}\n\n'
+                f'Теперь вы можете просматривать каталог товаров и делать заказы.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_status_notification_task(self, order_id: int):
     """
     Асинхронное уведомление покупателя об изменении статуса заказа.

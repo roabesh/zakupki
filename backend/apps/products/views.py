@@ -1,6 +1,7 @@
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
+from drf_spectacular.utils import extend_schema
 
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
@@ -43,4 +44,25 @@ class ProductListView(ListAPIView):
                 'product_infos__product_parameters__parameter',
             )
             .distinct()
+        )
+
+
+@extend_schema(
+    responses={200: ProductSerializer},
+    summary='Детали товара',
+    tags=['Каталог'],
+)
+class ProductDetailView(RetrieveAPIView):
+    """Получение полной информации о конкретном товаре с характеристиками."""
+
+    serializer_class = ProductSerializer
+    permission_classes = []  # доступно без авторизации
+
+    def get_queryset(self):
+        return (
+            Product.objects.select_related('category')
+            .prefetch_related(
+                'product_infos__shop',
+                'product_infos__product_parameters__parameter',
+            )
         )

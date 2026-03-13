@@ -79,6 +79,27 @@ def category(shop, db):
 
 
 @pytest.fixture
+def admin_user(db):
+    """Пользователь-администратор (is_staff=True)."""
+    from apps.users.models import User
+    return User.objects.create_user(
+        email='admin@test.com',
+        password='adminpass123',
+        type='buyer',
+        is_staff=True,
+    )
+
+
+@pytest.fixture
+def admin_client(admin_user):
+    """Аутентифицированный клиент администратора."""
+    client = APIClient()
+    token, _ = Token.objects.get_or_create(user=admin_user)
+    client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+    return client
+
+
+@pytest.fixture
 def product_info(shop, category, db):
     """Тестовый товар с ценой в магазине."""
     from apps.products.models import Product, ProductInfo

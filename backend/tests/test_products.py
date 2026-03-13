@@ -44,3 +44,12 @@ class TestCatalog:
         response = api_client.get('/api/v1/products/')
         assert response.status_code == 200
         assert response.data['count'] == 0
+
+    def test_product_detail(self, api_client, product_info):
+        """Получение детальной информации о конкретном товаре."""
+        pk = product_info.product.id
+        response = api_client.get(f'/api/v1/products/{pk}/')
+        assert response.status_code == 200
+        assert response.data['id'] == pk
+        assert 'product_infos' in response.data
+        assert len(response.data['product_infos']) >= 1

@@ -81,3 +81,20 @@ class TestUserDetails:
         """Профиль недоступен без авторизации."""
         response = api_client.get('/api/v1/user/details/')
         assert response.status_code == 401
+
+
+@pytest.mark.django_db
+class TestRegistrationEmail:
+    """Тесты отправки email при регистрации."""
+
+    def test_registration_sends_email(self, api_client, mailoutbox):
+        """После регистрации пользователь получает приветственный email."""
+        response = api_client.post('/api/v1/user/register/', {
+            'email': 'newuser@test.com',
+            'password': 'strongpass123',
+            'type': 'buyer',
+        })
+        assert response.status_code == 201
+        assert len(mailoutbox) == 1
+        assert mailoutbox[0].to == ['newuser@test.com']
+        assert 'Zakupki' in mailoutbox[0].subject
