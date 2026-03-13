@@ -53,3 +53,8 @@ docker-compose.override.yml
 
 # Migrations (опционально — обычно коммитят)
 # */migrations/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
