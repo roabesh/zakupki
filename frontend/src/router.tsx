@@ -8,6 +8,10 @@ const CatalogPageLazy = lazy(() => import('./pages/catalog/CatalogPage'))
 const ProductDetailPageLazy = lazy(() => import('./pages/catalog/ProductDetailPage'))
 const LoginPageLazy = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPageLazy = lazy(() => import('./pages/auth/RegisterPage'))
+const BasketPageLazy = lazy(() => import('./pages/basket/BasketPage'))
+const CheckoutPageLazy = lazy(() => import('./pages/checkout/CheckoutPage'))
+const OrdersPageLazy = lazy(() => import('./pages/orders/OrdersPage'))
+const OrderDetailPageLazy = lazy(() => import('./pages/orders/OrderDetailPage'))
 
 // Временные заглушки для ещё не реализованных страниц
 const ComingSoon = ({ title }: { title: string }) => (
@@ -53,10 +57,22 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute role="buyer" />,
         children: [
-          { path: 'basket', element: <ComingSoon title="Корзина" /> },
-          { path: 'checkout', element: <ComingSoon title="Оформление заказа" /> },
-          { path: 'orders', element: <ComingSoon title="Мои заказы" /> },
-          { path: 'orders/:id', element: <ComingSoon title="Детали заказа" /> },
+          {
+            path: 'basket',
+            element: <Suspense fallback={<LoadingFallback />}><BasketPageLazy /></Suspense>,
+          },
+          {
+            path: 'checkout',
+            element: <Suspense fallback={<LoadingFallback />}><CheckoutPageLazy /></Suspense>,
+          },
+          {
+            path: 'orders',
+            element: <Suspense fallback={<LoadingFallback />}><OrdersPageLazy /></Suspense>,
+          },
+          {
+            path: 'orders/:id',
+            element: <Suspense fallback={<LoadingFallback />}><OrderDetailPageLazy /></Suspense>,
+          },
         ],
       },
 
