@@ -1,16 +1,26 @@
 import client from './client'
 import type { AuthResponse, LoginRequest, RegisterRequest, User } from '@/types'
 
-// Авторизация пользователя
-export const login = async (data: LoginRequest): Promise<AuthResponse> => {
+// Авторизация пользователя — возвращает токен и профиль
+export const login = async (data: LoginRequest): Promise<{ token: string; user: User }> => {
   const res = await client.post<AuthResponse>('/user/login/', data)
-  return res.data
+  const token = res.data.token
+  // Временно устанавливаем токен для следующего запроса профиля
+  const profile = await client.get<User>('/user/details/', {
+    headers: { Authorization: `Token ${token}` },
+  })
+  return { token, user: profile.data }
 }
 
-// Регистрация нового пользователя
-export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
+// Регистрация нового пользователя — возвращает токен и профиль
+export const register = async (data: RegisterRequest): Promise<{ token: string; user: User }> => {
   const res = await client.post<AuthResponse>('/user/register/', data)
-  return res.data
+  const token = res.data.token
+  // Временно устанавливаем токен для следующего запроса профиля
+  const profile = await client.get<User>('/user/details/', {
+    headers: { Authorization: `Token ${token}` },
+  })
+  return { token, user: profile.data }
 }
 
 // Получение профиля текущего пользователя
