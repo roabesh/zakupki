@@ -13,6 +13,9 @@ const CheckoutPageLazy = lazy(() => import('./pages/checkout/CheckoutPage'))
 const OrdersPageLazy = lazy(() => import('./pages/orders/OrdersPage'))
 const OrderDetailPageLazy = lazy(() => import('./pages/orders/OrderDetailPage'))
 const ProfilePageLazy = lazy(() => import('./pages/profile/ProfilePage'))
+const PartnerDashboardLazy = lazy(() => import('./pages/partner/PartnerDashboard'))
+const UploadPageLazy = lazy(() => import('./pages/partner/UploadPage'))
+const PartnerOrdersPageLazy = lazy(() => import('./pages/partner/PartnerOrdersPage'))
 
 // Временные заглушки для ещё не реализованных страниц
 const ComingSoon = ({ title }: { title: string }) => (
@@ -92,9 +95,18 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute role="supplier" />,
         children: [
-          { path: 'partner', element: <ComingSoon title="Кабинет партнёра" /> },
-          { path: 'partner/upload', element: <ComingSoon title="Загрузка прайса" /> },
-          { path: 'partner/orders', element: <ComingSoon title="Заказы партнёра" /> },
+          {
+            path: 'partner',
+            element: <Suspense fallback={<LoadingFallback />}><PartnerDashboardLazy /></Suspense>,
+          },
+          {
+            path: 'partner/upload',
+            element: <Suspense fallback={<LoadingFallback />}><UploadPageLazy /></Suspense>,
+          },
+          {
+            path: 'partner/orders',
+            element: <Suspense fallback={<LoadingFallback />}><PartnerOrdersPageLazy /></Suspense>,
+          },
         ],
       },
 
