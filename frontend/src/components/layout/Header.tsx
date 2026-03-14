@@ -1,10 +1,23 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingCart, User, LogOut, Package } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '@/store/authStore'
+import { getBasket } from '@/api/basket'
 
 const Header = () => {
   const navigate = useNavigate()
   const { isAuthenticated, user, isBuyer, isSupplier, isAdmin, logout } = useAuthStore()
+
+  // Загружаем корзину только для покупателя, чтобы показать счётчик товаров
+  const { data: basket } = useQuery({
+    queryKey: ['basket'],
+    queryFn: getBasket,
+    enabled: !!isBuyer,
+    staleTime: 30000,
+  })
+
+  // Количество позиций в корзине
+  const itemCount = basket?.order_items?.length ?? 0
 
   const handleLogout = () => {
     logout()
@@ -50,11 +63,13 @@ const Header = () => {
               <>
                 {/* Иконка корзины — только для покупателя */}
                 {isBuyer && (
-                  <Link
-                    to="/basket"
-                    className="p-2 text-gray-600 hover:text-primary-600 transition-colors"
-                  >
+                  <Link to="/basket" className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
                     <ShoppingCart size={22} />
+                    {itemCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold">
+                        {itemCount > 9 ? '9+' : itemCount}
+                      </span>
+                    )}
                   </Link>
                 )}
 
