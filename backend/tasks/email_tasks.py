@@ -21,7 +21,7 @@ def send_order_confirmation_task(self, order_id: int):
 
     items_text = '\n'.join(
         f'  • {item.product_info.product.name} ({item.product_info.shop.name}) '
-        f'x {item.quantity} = {item.product_info.price * item.quantity} ₽'
+        f'x {item.quantity} = {float(item.product_info.price_rrc) * item.quantity:.0f} ₽'
         for item in order.order_items.all()
     )
 

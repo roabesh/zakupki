@@ -192,12 +192,12 @@ class OrderView(APIView):
                 defaults={'state': 'new'},
             )
 
-        # Отправляем email асинхронно через Celery (не блокируем если брокер недоступен)
+        # Отправляем email: сначала через Celery, при недоступности — синхронно
         try:
             from tasks.email_tasks import send_order_confirmation_task
             send_order_confirmation_task.delay(basket.id)
         except Exception:
-            pass
+            _send_order_confirmation(basket)
 
         serializer = OrderSerializer(basket)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -264,12 +264,12 @@ class AdminOrderView(APIView):
         order.state = new_state
         order.save(update_fields=['state'])
 
-        # Уведомляем покупателя асинхронно через Celery (не блокируем если брокер недоступен)
+        # Уведомляем покупателя: сначала через Celery, при недоступности — синхронно
         try:
             from tasks.email_tasks import send_status_notification_task
             send_status_notification_task.delay(order.id)
         except Exception:
-            pass
+            _send_status_notification(order)
 
         serializer = OrderSerializer(order)
         return Response(serializer.data)
