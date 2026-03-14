@@ -1,7 +1,7 @@
 from celery import shared_task
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60, time_limit=300, soft_time_limit=240)
 def import_price_from_url_task(self, url: str, user_id: int):
     """
     Асинхронный импорт прайса по URL.
@@ -18,7 +18,7 @@ def import_price_from_url_task(self, url: str, user_id: int):
         raise self.retry(exc=exc)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60, time_limit=300, soft_time_limit=240)
 def export_price_task(self, shop_id: int) -> str:
     """
     Асинхронный экспорт прайса поставщика в YAML-строку.

@@ -23,6 +23,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
     'django_filters',
@@ -41,6 +42,7 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # CORS — должен быть первым
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -108,6 +110,15 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    # Защита от brute-force и DoS
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '60/hour',
+        'user': '1000/hour',
+    },
 }
 
 # drf-spectacular (OpenAPI)
@@ -138,3 +149,31 @@ ADMIN_EMAIL = env('ADMIN_EMAIL', default='admin@zakupki.ru')
 
 # URL фронтенда (используется в письмах для формирования ссылок)
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
+# CORS — разрешённые источники для кросс-доменных запросов
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:5173'])
+CORS_ALLOW_CREDENTIALS = True
+
+# Логирование
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {
+        'django': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'apps': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'tasks': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}

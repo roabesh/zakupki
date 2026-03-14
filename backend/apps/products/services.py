@@ -1,13 +1,37 @@
+import ipaddress
 import requests
 import yaml
+from urllib.parse import urlparse
 from django.db import transaction
 
 from apps.shops.models import Shop
 from apps.products.models import Category, Product, ProductInfo, Parameter, ProductParameter
 
 
+def _validate_url(url: str) -> None:
+    """Проверяет URL на SSRF-уязвимости: запрещает localhost и private IP."""
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or '').lower()
+
+    # Явно запрещённые имена хостов
+    blocked = {'localhost', '127.0.0.1', '0.0.0.0', '::1', '0:0:0:0:0:0:0:1'}
+    if hostname in blocked:
+        raise ValueError('Загрузка по локальному адресу запрещена')
+
+    # Проверка по IP — запрет private/loopback/reserved диапазонов
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local:
+            raise ValueError('Загрузка по приватному IP-адресу запрещена')
+    except ValueError as exc:
+        if 'запрещена' in str(exc):
+            raise
+        # hostname — это доменное имя, а не IP-адрес; всё в порядке
+
+
 def load_price_from_url(url: str) -> dict:
     """Загружает YAML-прайс по URL и возвращает распарсенный словарь."""
+    _validate_url(url)
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return yaml.safe_load(response.content)

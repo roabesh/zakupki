@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -137,10 +138,7 @@ class ContactView(APIView):
     )
     def put(self, request):
         contact_id = request.data.get('id')
-        try:
-            contact = Contact.objects.get(id=contact_id, user=request.user)
-        except Contact.DoesNotExist:
-            return Response({'error': 'Контакт не найден'}, status=status.HTTP_404_NOT_FOUND)
+        contact = get_object_or_404(Contact, id=contact_id, user=request.user)
 
         serializer = ContactSerializer(contact, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():

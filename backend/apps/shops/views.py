@@ -1,6 +1,8 @@
+import logging
 import yaml
 from decimal import Decimal
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,6 +15,11 @@ from apps.products.services import load_price_from_url, load_price_from_file, im
 from apps.products.models import ProductInfo
 from .models import Shop, ShopOrder
 from .serializers import ShopSerializer, PartnerStateSerializer
+
+logger = logging.getLogger(__name__)
+
+# Максимальный размер загружаемого прайс-файла
+_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 МБ
 
 
 def _compute_composite_state(order):
@@ -36,6 +43,20 @@ def _compute_composite_state(order):
     return min(active, key=lambda s: priority.get(s, 0))
 
 
+def _filter_to_shop_items(order_data: dict, order_obj, shop) -> dict:
+    """Фильтрует позиции заказа до товаров конкретного поставщика и пересчитывает сумму."""
+    pi_ids = set(
+        order_obj.order_items.filter(product_info__shop=shop)
+        .values_list('product_info_id', flat=True)
+    )
+    items = [i for i in order_data['order_items'] if i['product_info']['id'] in pi_ids]
+    total = sum(
+        Decimal(str(i['product_info']['price_rrc'])) * i['quantity']
+        for i in items
+    )
+    return {**order_data, 'order_items': items, 'total_sum': str(total)}
+
+
 class ShopListView(APIView):
     """Список активных магазинов."""
 
@@ -54,6 +75,8 @@ class ShopListView(APIView):
 
 class PartnerUpdateView(APIView):
     """Загрузка/обновление прайса поставщика."""
+
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         request=inline_serializer('PartnerUpdateRequest', fields={
@@ -94,6 +117,19 @@ class PartnerUpdateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Валидация загружаемого файла
+        if file:
+            if not file.name.lower().endswith(('.yaml', '.yml')):
+                return Response(
+                    {'error': 'Допустимы только YAML-файлы (.yaml, .yml)'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if file.size > _MAX_FILE_SIZE:
+                return Response(
+                    {'error': 'Файл не должен превышать 10 МБ'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         try:
             if url:
                 # Загрузка по URL выполняется асинхронно через Celery
@@ -118,6 +154,8 @@ class PartnerUpdateView(APIView):
 
 class PartnerStateView(APIView):
     """Получение и изменение статуса приёма заказов."""
+
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         responses={200: PartnerStateSerializer, 403: OpenApiResponse(description='Только для поставщиков')},
@@ -165,6 +203,8 @@ class PartnerStateView(APIView):
 class PartnerOrdersView(APIView):
     """Список заказов поставщика + смена статуса."""
 
+    permission_classes = [IsAuthenticated]
+
     @extend_schema(
         summary='Заказы поставщика',
         tags=['Партнёр'],
@@ -208,18 +248,7 @@ class PartnerOrdersView(APIView):
             d = dict(order_data)
             # Показываем статус этого поставщика, а не общий
             d['state'] = shop_order_map.get(d['id'], d['state'])
-            # Оставляем только товары этого поставщика
-            pi_ids = set(
-                order_obj.order_items.filter(product_info__shop=shop)
-                .values_list('product_info_id', flat=True)
-            )
-            items = [i for i in d['order_items'] if i['product_info']['id'] in pi_ids]
-            d['order_items'] = items
-            # Пересчитываем сумму
-            d['total_sum'] = str(sum(
-                Decimal(str(i['product_info']['price_rrc'])) * i['quantity']
-                for i in items
-            ))
+            d = _filter_to_shop_items(d, order_obj, shop)
             result.append(d)
 
         return Response(result)
@@ -283,28 +312,21 @@ class PartnerOrdersView(APIView):
         try:
             from tasks.email_tasks import send_status_notification_task
             send_status_notification_task.delay(order.id)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning('Не удалось отправить уведомление о статусе заказа #%s: %s', order.id, e)
 
         # Возвращаем заказ с состоянием именно этого поставщика
         serializer = OrderSerializer(order)
         data = dict(serializer.data)
         data['state'] = new_state  # показываем shop-state, а не composite
-        pi_ids = set(
-            order.order_items.filter(product_info__shop=shop)
-            .values_list('product_info_id', flat=True)
-        )
-        items = [i for i in data['order_items'] if i['product_info']['id'] in pi_ids]
-        data['order_items'] = items
-        data['total_sum'] = str(sum(
-            Decimal(str(i['product_info']['price_rrc'])) * i['quantity']
-            for i in items
-        ))
+        data = _filter_to_shop_items(data, order, shop)
         return Response(data)
 
 
 class PartnerOrderDetailView(APIView):
     """Детали конкретного заказа поставщика."""
+
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary='Детали заказа поставщика',
@@ -346,29 +368,14 @@ class PartnerOrderDetailView(APIView):
         except ShopOrder.DoesNotExist:
             pass
 
-        # Оставляем только позиции текущего поставщика
-        shop_pi_ids = set(
-            order.order_items.filter(product_info__shop=shop)
-            .values_list('product_info_id', flat=True)
-        )
-        supplier_items = [
-            item for item in data['order_items']
-            if item['product_info']['id'] in shop_pi_ids
-        ]
-        data['order_items'] = supplier_items
-
-        # Пересчитываем сумму только по своим позициям
-        total = sum(
-            Decimal(str(item['product_info']['price_rrc'])) * item['quantity']
-            for item in supplier_items
-        )
-        data['total_sum'] = str(total)
-
+        data = _filter_to_shop_items(data, order, shop)
         return Response(data)
 
 
 class PartnerExportView(APIView):
     """Экспорт текущего прайса поставщика в формате YAML."""
+
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         responses={

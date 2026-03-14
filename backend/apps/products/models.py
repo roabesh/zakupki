@@ -24,7 +24,7 @@ class Category(models.Model):
 class Product(models.Model):
     """Товар (общее наименование)."""
 
-    name = models.CharField(max_length=200, verbose_name='Название')
+    name = models.CharField(max_length=200, verbose_name="Название", db_index=True)
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
@@ -57,7 +57,7 @@ class ProductInfo(models.Model):
         verbose_name='Магазин',
     )
     model = models.CharField(max_length=100, blank=True, verbose_name='Модель')
-    external_id = models.PositiveIntegerField(verbose_name='Внешний ID')
+    external_id = models.PositiveIntegerField(verbose_name="Внешний ID", db_index=True)
     quantity = models.PositiveIntegerField(verbose_name='Остаток')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена')
     price_rrc = models.DecimalField(

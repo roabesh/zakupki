@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Contact, Order, OrderItem
+from apps.products.models import ProductInfo
 from apps.products.serializers import ProductInfoSerializer
 
 
@@ -36,7 +37,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     product_info = ProductInfoSerializer(read_only=True)
     product_info_id = serializers.PrimaryKeyRelatedField(
         source='product_info',
-        queryset=__import__('apps.products.models', fromlist=['ProductInfo']).ProductInfo.objects.all(),
+        queryset=ProductInfo.objects.filter(shop__state=True),
         write_only=True,
     )
 
