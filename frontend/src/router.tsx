@@ -16,16 +16,7 @@ const ProfilePageLazy = lazy(() => import('./pages/profile/ProfilePage'))
 const PartnerDashboardLazy = lazy(() => import('./pages/partner/PartnerDashboard'))
 const UploadPageLazy = lazy(() => import('./pages/partner/UploadPage'))
 const PartnerOrdersPageLazy = lazy(() => import('./pages/partner/PartnerOrdersPage'))
-
-// Временные заглушки для ещё не реализованных страниц
-const ComingSoon = ({ title }: { title: string }) => (
-  <div className="flex items-center justify-center h-64">
-    <div className="text-center">
-      <h2 className="text-2xl font-bold text-gray-700">{title}</h2>
-      <p className="text-gray-500 mt-2">Страница в разработке</p>
-    </div>
-  </div>
-)
+const AdminOrdersPageLazy = lazy(() => import('./pages/admin/AdminOrdersPage'))
 
 // Компонент загрузки при ленивом импорте
 const LoadingFallback = () => (
@@ -114,7 +105,7 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute role="admin" />,
         children: [
-          { path: 'admin/orders', element: <ComingSoon title="Все заказы" /> },
+          { path: 'admin/orders', element: <Suspense fallback={<LoadingFallback />}><AdminOrdersPageLazy /></Suspense> },
         ],
       },
     ],
