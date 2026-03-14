@@ -29,9 +29,10 @@ export const orderStateConfig: Record<
   new:       { label: 'Новый',        color: 'text-blue-700',   bg: 'bg-blue-100' },
   confirmed: { label: 'Подтверждён',  color: 'text-cyan-700',   bg: 'bg-cyan-100' },
   assembled: { label: 'Собран',       color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  sent:      { label: 'Отправлен',    color: 'text-orange-700', bg: 'bg-orange-100' },
-  delivered: { label: 'Доставлен',    color: 'text-green-700',  bg: 'bg-green-100' },
-  cancelled: { label: 'Отменён',      color: 'text-red-700',    bg: 'bg-red-100' },
+  sent:           { label: 'Отправлен',          color: 'text-orange-700', bg: 'bg-orange-100' },
+  partially_sent: { label: 'Отправлен частично', color: 'text-amber-700',  bg: 'bg-amber-100'  },
+  delivered:      { label: 'Доставлен',          color: 'text-green-700',  bg: 'bg-green-100'  },
+  cancelled:      { label: 'Отменён',            color: 'text-red-700',    bg: 'bg-red-100'    },
 }
 
 // Минимальная цена товара среди всех магазинов

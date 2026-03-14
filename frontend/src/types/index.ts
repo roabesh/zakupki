@@ -77,6 +77,7 @@ export type OrderState =
   | 'confirmed'
   | 'assembled'
   | 'sent'
+  | 'partially_sent'
   | 'delivered'
   | 'cancelled'
 
@@ -87,6 +88,8 @@ export interface Order {
   contact: Contact | null
   order_items: OrderItem[]
   total_sum: string
+  // Статусы по каждому поставщику: {shop_name: state}
+  shop_states?: Record<string, string>
 }
 
 export interface LoginRequest {

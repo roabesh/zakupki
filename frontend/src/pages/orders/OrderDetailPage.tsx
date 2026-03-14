@@ -35,6 +35,7 @@ interface StatusBadgeProps {
 const StatusBadge = ({ state }: StatusBadgeProps) => {
   if (state === 'basket') return null
   const config = orderStateConfig[state]
+  if (!config) return null
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
       {config.label}
@@ -118,6 +119,7 @@ const OrderDetailPage = () => {
                   <tr className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wide">
                     <th className="px-5 py-2.5 text-left font-medium">Товар</th>
                     <th className="px-5 py-2.5 text-left font-medium">Магазин</th>
+                    <th className="px-5 py-2.5 text-left font-medium">Статус</th>
                     <th className="px-5 py-2.5 text-right font-medium whitespace-nowrap">Цена</th>
                     <th className="px-5 py-2.5 text-right font-medium whitespace-nowrap">Кол-во</th>
                     <th className="px-5 py-2.5 text-right font-medium whitespace-nowrap">Сумма</th>
@@ -129,11 +131,23 @@ const OrderDetailPage = () => {
                     const shopName = item.product_info.shop
                     const priceNum = parseFloat(item.product_info.price_rrc)
                     const itemTotal = priceNum * item.quantity
+                    // Статус поставщика для этой позиции из shop_states
+                    const shopStateStr = order.shop_states?.[shopName]
+                    const shopStateCfg = shopStateStr && shopStateStr !== 'basket'
+                      ? orderStateConfig[shopStateStr as Exclude<OrderState, 'basket'>]
+                      : null
 
                     return (
                       <tr key={item.id}>
                         <td className="px-5 py-3 font-medium text-gray-900">{productName}</td>
                         <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{shopName}</td>
+                        <td className="px-5 py-3">
+                          {shopStateCfg && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${shopStateCfg.bg} ${shopStateCfg.color}`}>
+                              {shopStateCfg.label}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-5 py-3 text-gray-700 text-right whitespace-nowrap">
                           {formatPrice(priceNum)}
                         </td>

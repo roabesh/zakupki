@@ -24,3 +24,43 @@ class Shop(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ShopOrder(models.Model):
+    """Статус заказа у конкретного поставщика."""
+
+    SHOP_ORDER_STATE_CHOICES = [
+        ('new', 'Новый'),
+        ('confirmed', 'Подтверждён'),
+        ('assembled', 'Собран'),
+        ('sent', 'Отправлен'),
+        ('delivered', 'Доставлен'),
+        ('cancelled', 'Отменён'),
+    ]
+
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.CASCADE,
+        related_name='shop_orders',
+        verbose_name='Заказ',
+    )
+    shop = models.ForeignKey(
+        Shop,
+        on_delete=models.CASCADE,
+        related_name='shop_orders',
+        verbose_name='Магазин',
+    )
+    state = models.CharField(
+        max_length=15,
+        choices=SHOP_ORDER_STATE_CHOICES,
+        default='new',
+        verbose_name='Статус',
+    )
+
+    class Meta:
+        unique_together = ('order', 'shop')
+        verbose_name = 'Статус заказа у поставщика'
+        verbose_name_plural = 'Статусы заказов у поставщиков'
+
+    def __str__(self):
+        return f'Заказ #{self.order_id} — {self.shop.name}: {self.state}'

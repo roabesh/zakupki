@@ -1,0 +1,128 @@
+shop: ДигиМаг
+categories:
+  - id: 1
+    name: Смартфоны
+  - id: 2
+    name: Аксессуары
+
+goods:
+  # Смартфоны — пересечение с ТехноМир
+  - id: 5001
+    category: 1
+    model: samsung/galaxy/s23-256
+    name: Смартфон Samsung Galaxy S23 256GB (зеленый)
+    price: 70000
+    price_rrc: 72990
+    quantity: 20
+    parameters:
+      Цвет: зеленый
+      Объём встроенной памяти (Гб): 256
+      Тип: смартфон
+      Операционная система: Android
+      Диагональ (дюйм): "6.1"
+
+  - id: 5002
+    category: 1
+    model: xiaomi/redmi-note-12/128
+    name: Смартфон Xiaomi Redmi Note 12 128GB (синий)
+    price: 21000
+    price_rrc: 21990
+    quantity: 45
+    parameters:
+      Цвет: синий
+      Объём встроенной памяти (Гб): 128
+      Тип: смартфон
+      Операционная система: Android
+      Диагональ (дюйм): "6.67"
+
+  - id: 5003
+    category: 1
+    model: realme/11-pro/256
+    name: Смартфон Realme 11 Pro 256GB (жемчужный белый)
+    price: 27000
+    price_rrc: 28990
+    quantity: 30
+    parameters:
+      Цвет: жемчужный белый
+      Объём встроенной памяти (Гб): 256
+      Тип: смартфон
+      Операционная система: Android
+      Диагональ (дюйм): "6.7"
+
+  - id: 5004
+    category: 1
+    model: samsung/galaxy/a54-128
+    name: Смартфон Samsung Galaxy A54 128GB (графит)
+    price: 37000
+    price_rrc: 38490
+    quantity: 35
+    parameters:
+      Цвет: графит
+      Объём встроенной памяти (Гб): 128
+      Тип: смартфон
+      Операционная система: Android
+      Диагональ (дюйм): "6.4"
+
+  - id: 5005
+    category: 1
+    model: xiaomi/13/256
+    name: Смартфон Xiaomi 13 256GB (белый)
+    price: 61000
+    price_rrc: 62990
+    quantity: 10
+    parameters:
+      Цвет: белый
+      Объём встроенной памяти (Гб): 256
+      Тип: смартфон
+      Операционная система: Android
+      Диагональ (дюйм): "6.36"
+
+  # Аксессуары — пересечение и новые
+  - id: 5010
+    category: 2
+    model: xiaomi/charger/65w-gan
+    name: Зарядное устройство Xiaomi 65W GaN
+    price: 3500
+    price_rrc: 3790
+    quantity: 100
+    parameters:
+      Тип: зарядное устройство
+      Мощность (Вт): 65
+      Интерфейс: USB-C
+
+  - id: 5011
+    category: 2
+    model: baseus/powerbank/20000
+    name: Внешний аккумулятор Baseus 20000mAh (синий)
+    price: 3200
+    price_rrc: 3390
+    quantity: 70
+    parameters:
+      Тип: внешний аккумулятор
+      Ёмкость (мАч): 20000
+      Цвет: синий
+
+  - id: 5012
+    category: 2
+    model: usb-c/cable/2m-white
+    name: Кабель USB-C - USB-C 2м Premium (белый)
+    price: 1800
+    price_rrc: 1990
+    quantity: 200
+    parameters:
+      Тип: кабель
+      Длина (м): 2
+      Интерфейс: USB-C
+      Цвет: белый
+
+  - id: 5013
+    category: 2
+    model: xiaomi/powerbank/10000
+    name: Внешний аккумулятор Xiaomi 10000mAh (черный)
+    price: 2300
+    price_rrc: 2390
+    quantity: 90
+    parameters:
+      Тип: внешний аккумулятор
+      Ёмкость (мАч): 10000
+      Цвет: черный

@@ -8,11 +8,12 @@ import type { OrderState } from '@/types'
 
 // Доступные переходы статуса для поставщика (key = текущий статус)
 const STATUS_TRANSITIONS: Partial<Record<OrderState, { state: string; label: string; className: string }[]>> = {
-  new:       [{ state: 'confirmed', label: 'Подтвердить заказ', className: 'bg-cyan-600 text-white hover:bg-cyan-700' },
-              { state: 'cancelled', label: 'Отменить',          className: 'bg-red-600 text-white hover:bg-red-700' }],
-  confirmed: [{ state: 'assembled', label: 'Отметить как собранный', className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
-              { state: 'cancelled', label: 'Отменить',               className: 'bg-red-600 text-white hover:bg-red-700' }],
-  assembled: [{ state: 'sent',      label: 'Отметить как отправленный', className: 'bg-orange-500 text-white hover:bg-orange-600' }],
+  new:       [{ state: 'confirmed', label: 'Подтвердить заказ',     className: 'bg-cyan-600 text-white hover:bg-cyan-700' },
+              { state: 'cancelled', label: 'Отменить',              className: 'bg-red-600 text-white hover:bg-red-700' }],
+  confirmed: [{ state: 'assembled', label: 'Собрать заказ',         className: 'bg-yellow-500 text-white hover:bg-yellow-600' },
+              { state: 'cancelled', label: 'Отменить',              className: 'bg-red-600 text-white hover:bg-red-700' }],
+  assembled: [{ state: 'sent',      label: 'Отправить покупателю',  className: 'bg-orange-500 text-white hover:bg-orange-600' }],
+  sent:      [{ state: 'delivered', label: 'Подтвердить получение', className: 'bg-green-600 text-white hover:bg-green-700' }],
 }
 
 // Страница деталей заказа для поставщика

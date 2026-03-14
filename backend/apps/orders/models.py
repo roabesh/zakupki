@@ -50,6 +50,7 @@ class Order(models.Model):
         CONFIRMED = 'confirmed', 'Подтверждён'
         ASSEMBLED = 'assembled', 'Собран'
         SENT = 'sent', 'Отправлен'
+        PARTIALLY_SENT = 'partially_sent', 'Отправлен частично'
         DELIVERED = 'delivered', 'Доставлен'
         CANCELLED = 'cancelled', 'Отменён'
 

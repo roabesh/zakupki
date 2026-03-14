@@ -1,0 +1,157 @@
+shop: ТехноЦентр
+categories:
+  - id: 3
+    name: Ноутбуки
+  - id: 4
+    name: Бытовая техника
+  - id: 2
+    name: Аксессуары
+
+goods:
+  # Ноутбуки — пересечение с ТехноМир
+  - id: 7001
+    category: 3
+    model: apple/macbook-air/13-m1-8-256
+    name: Ноутбук Apple MacBook Air 13 M1 8/256GB (серый)
+    price: 91000
+    price_rrc: 93490
+    quantity: 10
+    parameters:
+      Цвет: серый
+      Процессор: Apple M1
+      ОЗУ (Гб): 8
+      Накопитель (Гб): 256
+      Диагональ (дюйм): "13.3"
+
+  - id: 7002
+    category: 3
+    model: lenovo/ideapad-3/8-256
+    name: Ноутбук Lenovo IdeaPad 3 8/256GB (синий)
+    price: 42500
+    price_rrc: 43990
+    quantity: 25
+    parameters:
+      Цвет: синий
+      Процессор: Intel Core i3
+      ОЗУ (Гб): 8
+      Накопитель (Гб): 256
+      Диагональ (дюйм): "15.6"
+
+  - id: 7003
+    category: 3
+    model: asus/zenbook-14/16-512
+    name: Ноутбук ASUS ZenBook 14 16/512GB (зеленый)
+    price: 81000
+    price_rrc: 82990
+    quantity: 8
+    parameters:
+      Цвет: зеленый
+      Процессор: Intel Core i7
+      ОЗУ (Гб): 16
+      Накопитель (Гб): 512
+      Диагональ (дюйм): "14.0"
+
+  - id: 7004
+    category: 3
+    model: hp/laptop-15/8-256
+    name: Ноутбук HP Laptop 15 8/256GB (серебристый)
+    price: 36000
+    price_rrc: 37990
+    quantity: 20
+    parameters:
+      Цвет: серебристый
+      Процессор: AMD Ryzen 5
+      ОЗУ (Гб): 8
+      Накопитель (Гб): 256
+      Диагональ (дюйм): "15.6"
+
+  - id: 7005
+    category: 3
+    model: acer/swift-3/8-512
+    name: Ноутбук Acer Swift 3 8/512GB (серебристый)
+    price: 56500
+    price_rrc: 57990
+    quantity: 14
+    parameters:
+      Цвет: серебристый
+      Процессор: Intel Core i5
+      ОЗУ (Гб): 8
+      Накопитель (Гб): 512
+      Диагональ (дюйм): "14.0"
+
+  # Бытовая техника — пересечение
+  - id: 7010
+    category: 4
+    model: xiaomi/vacuum/s10
+    name: Пылесос Xiaomi Vacuum S10 (белый)
+    price: 23500
+    price_rrc: 24490
+    quantity: 20
+    parameters:
+      Тип: робот-пылесос
+      Мощность всасывания: 4000 Па
+      Цвет: белый
+
+  - id: 7011
+    category: 4
+    model: xiaomi/smart-kettle-pro/black
+    name: Чайник Xiaomi Smart Kettle Pro (черный)
+    price: 4100
+    price_rrc: 4290
+    quantity: 30
+    parameters:
+      Тип: электрочайник
+      Объём (л): 1.5
+      Управление: приложение
+      Цвет: черный
+
+  - id: 7012
+    category: 4
+    model: bosch/twb3p02/white
+    name: Чайник Bosch TWB3P02 (белый)
+    price: 3200
+    price_rrc: 3390
+    quantity: 35
+    parameters:
+      Тип: электрочайник
+      Объём (л): 1.7
+      Цвет: белый
+
+  - id: 7013
+    category: 4
+    model: samsung/me88sug/black
+    name: Микроволновая печь Samsung ME88SUG (черный)
+    price: 14500
+    price_rrc: 14990
+    quantity: 15
+    parameters:
+      Тип: микроволновая печь
+      Объём (л): 23
+      Мощность (Вт): 800
+      Цвет: черный
+
+  # Аксессуары
+  - id: 7020
+    category: 2
+    model: laptop-stand/aluminium/silver
+    name: Подставка для ноутбука алюминиевая (серебро)
+    price: 2700
+    price_rrc: 2790
+    quantity: 40
+    parameters:
+      Тип: подставка для ноутбука
+      Материал: алюминий
+      Цвет: серебро
+
+  - id: 7021
+    category: 2
+    model: usb-c/cable/1m-white
+    name: Кабель USB-C - USB-C 1м (белый)
+    price: 1350
+    price_rrc: 1450
+    quantity: 180
+    parameters:
+      Тип: кабель
+      Длина (м): 1
+      Интерфейс: USB-C
+      Цвет: белый

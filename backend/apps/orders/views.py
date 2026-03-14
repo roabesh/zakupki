@@ -181,6 +181,17 @@ class OrderView(APIView):
         basket.state = Order.OrderState.NEW
         basket.save(update_fields=['state', 'contact'])
 
+        # Создаём ShopOrder для каждого поставщика в заказе
+        from apps.shops.models import ShopOrder
+        for shop_id in basket.order_items.values_list(
+            'product_info__shop_id', flat=True
+        ).distinct():
+            ShopOrder.objects.get_or_create(
+                order=basket,
+                shop_id=shop_id,
+                defaults={'state': 'new'},
+            )
+
         # Отправляем email асинхронно через Celery (не блокируем если брокер недоступен)
         try:
             from tasks.email_tasks import send_order_confirmation_task

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Download, ShoppingBag, Store } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { getPartnerState, updatePartnerState, exportPrice } from '@/api/partner'
+import { getPartnerState, updatePartnerState, exportPrice, getPartnerOrders } from '@/api/partner'
 
 // Карточка навигации в кабинете партнёра
 interface NavCardProps {
@@ -10,9 +10,10 @@ interface NavCardProps {
   title: string
   description: string
   onClick: () => void
+  badge?: React.ReactNode
 }
 
-const NavCard = ({ icon, title, description, onClick }: NavCardProps) => (
+const NavCard = ({ icon, title, description, onClick, badge }: NavCardProps) => (
   <button
     onClick={onClick}
     className="flex items-start gap-4 w-full rounded-xl border border-gray-200 bg-white p-5 text-left hover:shadow-md transition-shadow cursor-pointer"
@@ -20,8 +21,11 @@ const NavCard = ({ icon, title, description, onClick }: NavCardProps) => (
     <div className="flex-shrink-0 p-2.5 rounded-lg bg-primary-50 text-primary-600">
       {icon}
     </div>
-    <div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2">
+        <h3 className="font-semibold text-gray-900">{title}</h3>
+        {badge}
+      </div>
       <p className="text-sm text-gray-500 mt-0.5">{description}</p>
     </div>
   </button>
@@ -37,6 +41,15 @@ const PartnerDashboard = () => {
     queryKey: ['partnerState'],
     queryFn: getPartnerState,
   })
+
+  // Загружаем заказы для подсчёта новых
+  const { data: partnerOrders } = useQuery({
+    queryKey: ['partnerOrders'],
+    queryFn: getPartnerOrders,
+  })
+
+  // Число заказов в статусе "new" (требуют действия)
+  const newOrdersCount = (partnerOrders ?? []).filter((o) => o.state === 'new').length
 
   // Мутация для обновления статуса
   const toggleMutation = useMutation({
@@ -132,9 +145,16 @@ const PartnerDashboard = () => {
         />
         <NavCard
           icon={<ShoppingBag className="w-5 h-5" />}
-          title="Мои заказы"
+          title="Заказы покупателей"
           description="Просмотр заказов, поступивших в ваш магазин"
           onClick={() => navigate('/partner/orders')}
+          badge={
+            newOrdersCount > 0 ? (
+              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold">
+                {newOrdersCount} новых
+              </span>
+            ) : undefined
+          }
         />
         <NavCard
           icon={<Download className="w-5 h-5" />}

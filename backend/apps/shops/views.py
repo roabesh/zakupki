@@ -1,4 +1,5 @@
 import yaml
+from decimal import Decimal
 from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -10,8 +11,29 @@ from rest_framework import serializers as drf_serializers
 
 from apps.products.services import load_price_from_url, load_price_from_file, import_price
 from apps.products.models import ProductInfo
-from .models import Shop
+from .models import Shop, ShopOrder
 from .serializers import ShopSerializer, PartnerStateSerializer
+
+
+def _compute_composite_state(order):
+    """Вычисляет общий статус заказа на основе статусов всех поставщиков."""
+    states = list(ShopOrder.objects.filter(order=order).values_list('state', flat=True))
+    if not states:
+        return order.state  # нет ShopOrder — используем текущий статус
+
+    active = [s for s in states if s != 'cancelled']
+    if not active:
+        return 'cancelled'
+
+    priority = {'new': 0, 'confirmed': 1, 'assembled': 2, 'sent': 3, 'delivered': 4}
+
+    if all(s == 'delivered' for s in active):
+        return 'delivered'
+    if all(s in ('sent', 'delivered') for s in active):
+        return 'sent'
+    if any(s in ('sent', 'delivered') for s in active):
+        return 'partially_sent'
+    return min(active, key=lambda s: priority.get(s, 0))
 
 
 class ShopListView(APIView):
@@ -161,7 +183,7 @@ class PartnerOrdersView(APIView):
         from apps.orders.models import Order
         from apps.orders.serializers import OrderSerializer
 
-        orders = (
+        orders = list(
             Order.objects.filter(
                 order_items__product_info__shop=shop,
             )
@@ -172,19 +194,48 @@ class PartnerOrdersView(APIView):
                 'order_items__product_info__shop',
             )
         )
+
         serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
+
+        # Подгружаем ShopOrder для этого поставщика (один запрос)
+        shop_order_map = {
+            so.order_id: so.state
+            for so in ShopOrder.objects.filter(order__in=orders, shop=shop)
+        }
+
+        result = []
+        for order_obj, order_data in zip(orders, serializer.data):
+            d = dict(order_data)
+            # Показываем статус этого поставщика, а не общий
+            d['state'] = shop_order_map.get(d['id'], d['state'])
+            # Оставляем только товары этого поставщика
+            pi_ids = set(
+                order_obj.order_items.filter(product_info__shop=shop)
+                .values_list('product_info_id', flat=True)
+            )
+            items = [i for i in d['order_items'] if i['product_info']['id'] in pi_ids]
+            d['order_items'] = items
+            # Пересчитываем сумму
+            d['total_sum'] = str(sum(
+                Decimal(str(i['product_info']['price_rrc'])) * i['quantity']
+                for i in items
+            ))
+            result.append(d)
+
+        return Response(result)
 
     @extend_schema(
         request=inline_serializer('PartnerOrderStatusRequest', fields={
             'id': drf_serializers.IntegerField(),
-            'state': drf_serializers.ChoiceField(choices=['confirmed', 'assembled', 'sent', 'cancelled']),
+            'state': drf_serializers.ChoiceField(
+                choices=['confirmed', 'assembled', 'sent', 'delivered', 'cancelled']
+            ),
         }),
         summary='Изменить статус заказа (поставщик)',
         tags=['Партнёр'],
     )
     def put(self, request):
-        """Поставщик меняет статус заказа. {"id": order_id, "state": "confirmed"}"""
+        """Поставщик меняет статус своей части заказа."""
         if request.user.type != 'supplier':
             return Response({'error': 'Только для поставщиков'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -200,7 +251,7 @@ class PartnerOrdersView(APIView):
         new_state = request.data.get('state')
 
         # Поставщик может переводить только в разрешённые статусы
-        allowed_states = ['confirmed', 'assembled', 'sent', 'cancelled']
+        allowed_states = ['confirmed', 'assembled', 'sent', 'delivered', 'cancelled']
         if new_state not in allowed_states:
             return Response(
                 {'error': f'Недопустимый статус. Доступны: {allowed_states}'},
@@ -215,7 +266,17 @@ class PartnerOrdersView(APIView):
         except Order.DoesNotExist:
             return Response({'error': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
 
-        order.state = new_state
+        # Обновляем статус конкретного поставщика
+        shop_order, _ = ShopOrder.objects.get_or_create(
+            order=order,
+            shop=shop,
+            defaults={'state': 'new'},
+        )
+        shop_order.state = new_state
+        shop_order.save(update_fields=['state'])
+
+        # Пересчитываем общий статус заказа
+        order.state = _compute_composite_state(order)
         order.save(update_fields=['state'])
 
         # Уведомляем покупателя (не блокируем если брокер недоступен)
@@ -225,8 +286,21 @@ class PartnerOrdersView(APIView):
         except Exception:
             pass
 
+        # Возвращаем заказ с состоянием именно этого поставщика
         serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        data = dict(serializer.data)
+        data['state'] = new_state  # показываем shop-state, а не composite
+        pi_ids = set(
+            order.order_items.filter(product_info__shop=shop)
+            .values_list('product_info_id', flat=True)
+        )
+        items = [i for i in data['order_items'] if i['product_info']['id'] in pi_ids]
+        data['order_items'] = items
+        data['total_sum'] = str(sum(
+            Decimal(str(i['product_info']['price_rrc'])) * i['quantity']
+            for i in items
+        ))
+        return Response(data)
 
 
 class PartnerOrderDetailView(APIView):
@@ -266,6 +340,12 @@ class PartnerOrderDetailView(APIView):
         serializer = OrderSerializer(order)
         data = dict(serializer.data)
 
+        # Показываем статус именно этого поставщика
+        try:
+            data['state'] = ShopOrder.objects.get(order=order, shop=shop).state
+        except ShopOrder.DoesNotExist:
+            pass
+
         # Оставляем только позиции текущего поставщика
         shop_pi_ids = set(
             order.order_items.filter(product_info__shop=shop)
@@ -278,7 +358,6 @@ class PartnerOrderDetailView(APIView):
         data['order_items'] = supplier_items
 
         # Пересчитываем сумму только по своим позициям
-        from decimal import Decimal
         total = sum(
             Decimal(str(item['product_info']['price_rrc'])) * item['quantity']
             for item in supplier_items

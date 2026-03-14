@@ -1,0 +1,125 @@
+shop: АудиоМаркет
+categories:
+  - id: 5
+    name: Аудиотехника
+  - id: 2
+    name: Аксессуары
+
+goods:
+  # Аудиотехника — пересечение с ТехноМир
+  - id: 6001
+    category: 5
+    model: sony/wh-1000xm5/black
+    name: Наушники Sony WH-1000XM5 (черные)
+    price: 37000
+    price_rrc: 38490
+    quantity: 20
+    parameters:
+      Тип: полноразмерные наушники
+      Шумоподавление: активное
+      Интерфейс: Bluetooth + 3.5mm
+      Цвет: черный
+
+  - id: 6002
+    category: 5
+    model: jbl/flip5/blue
+    name: Акустическая система JBL Flip 5 (синяя)
+    price: 10500
+    price_rrc: 10990
+    quantity: 40
+    parameters:
+      Тип: портативная акустика
+      Мощность (Вт): 20
+      Защита: IPX7
+      Цвет: синяя
+
+  - id: 6003
+    category: 5
+    model: apple/airpods-pro/2
+    name: Наушники Apple AirPods Pro 2
+    price: 25000
+    price_rrc: 25990
+    quantity: 25
+    parameters:
+      Тип: TWS наушники
+      Шумоподавление: активное
+      Интерфейс: Bluetooth
+      Цвет: белый
+
+  - id: 6004
+    category: 5
+    model: jbl/tune770nc/black
+    name: Наушники JBL Tune 770NC (черные)
+    price: 8500
+    price_rrc: 8990
+    quantity: 50
+    parameters:
+      Тип: полноразмерные наушники
+      Шумоподавление: активное
+      Интерфейс: Bluetooth
+      Цвет: черный
+
+  - id: 6005
+    category: 5
+    model: bose/quietcomfort-45/white
+    name: Наушники Bose QuietComfort 45 (белые)
+    price: 30500
+    price_rrc: 31990
+    quantity: 18
+    parameters:
+      Тип: полноразмерные наушники
+      Шумоподавление: активное
+      Интерфейс: Bluetooth + 3.5mm
+      Цвет: белые
+
+  - id: 6006
+    category: 5
+    model: samsung/galaxy-buds2/green
+    name: Наушники Samsung Galaxy Buds2 (зеленые)
+    price: 11000
+    price_rrc: 11490
+    quantity: 45
+    parameters:
+      Тип: TWS наушники
+      Шумоподавление: активное
+      Интерфейс: Bluetooth
+      Цвет: зеленый
+
+  - id: 6007
+    category: 5
+    model: jbl/charge5/grey
+    name: Акустическая система JBL Charge 5 (серая)
+    price: 15500
+    price_rrc: 15990
+    quantity: 30
+    parameters:
+      Тип: портативная акустика
+      Мощность (Вт): 30
+      Защита: IP67
+      Цвет: серая
+
+  # Аксессуары
+  - id: 6010
+    category: 2
+    model: usb-c/cable/1m-white
+    name: Кабель USB-C - USB-C 1м (белый)
+    price: 1300
+    price_rrc: 1390
+    quantity: 250
+    parameters:
+      Тип: кабель
+      Длина (м): 1
+      Интерфейс: USB-C
+      Цвет: белый
+
+  - id: 6011
+    category: 2
+    model: apple/charger/20w-usb-c
+    name: Зарядное устройство Apple 20W USB-C
+    price: 2700
+    price_rrc: 2890
+    quantity: 120
+    parameters:
+      Тип: зарядное устройство
+      Мощность (Вт): 20
+      Интерфейс: USB-C
