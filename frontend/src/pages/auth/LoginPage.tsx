@@ -43,7 +43,9 @@ const LoginPage = () => {
     } catch (err: unknown) {
       // Обработка ошибок авторизации
       const axiosErr = err as { response?: { status?: number } }
-      if (axiosErr.response?.status === 403 || axiosErr.response?.status === 401) {
+      // Backend возвращает 400 при неверных учётных данных
+      const s = axiosErr.response?.status
+      if (s === 400 || s === 401 || s === 403) {
         toast.error('Неверный email или пароль')
       } else {
         toast.error('Ошибка входа. Попробуйте позже.')

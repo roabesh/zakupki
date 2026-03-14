@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from '@/components/layout/Layout'
 import PrivateRoute from '@/components/layout/PrivateRoute'
@@ -105,7 +105,14 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute role="admin" />,
         children: [
-          { path: 'admin/orders', element: <Suspense fallback={<LoadingFallback />}><AdminOrdersPageLazy /></Suspense> },
+          {
+            path: 'admin',
+            element: <Navigate to="/admin/orders" replace />,
+          },
+          {
+            path: 'admin/orders',
+            element: <Suspense fallback={<LoadingFallback />}><AdminOrdersPageLazy /></Suspense>,
+          },
         ],
       },
     ],

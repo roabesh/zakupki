@@ -15,19 +15,43 @@ interface AuthState {
 }
 
 // Хранилище аутентификации с персистентностью в localStorage
+// ВАЖНО: plain boolean-значения вместо геттеров —
+// Zustand shallow-merge уничтожает JS-геттеры при первом вызове set()
 const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       token: null,
       user: null,
-      get isAuthenticated() { return !!get().token },
-      get isBuyer() { return get().user?.type === 'buyer' },
-      get isSupplier() { return get().user?.type === 'supplier' },
-      get isAdmin() { return !!get().user?.is_staff },
+      isAuthenticated: false,
+      isBuyer: false,
+      isSupplier: false,
+      isAdmin: false,
 
-      login: (token, user) => set({ token, user }),
-      setUser: (user) => set({ user }),
-      logout: () => set({ token: null, user: null }),
+      login: (token, user) => set({
+        token,
+        user,
+        isAuthenticated: true,
+        isBuyer: user.type === 'buyer',
+        isSupplier: user.type === 'supplier',
+        isAdmin: !!user.is_staff,
+      }),
+
+      setUser: (user) => set((state) => ({
+        ...state,
+        user,
+        isBuyer: user.type === 'buyer',
+        isSupplier: user.type === 'supplier',
+        isAdmin: !!user.is_staff,
+      })),
+
+      logout: () => set({
+        token: null,
+        user: null,
+        isAuthenticated: false,
+        isBuyer: false,
+        isSupplier: false,
+        isAdmin: false,
+      }),
     }),
     { name: 'auth-storage' }
   )
