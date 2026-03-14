@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Minus,
+  Plus,
 } from 'lucide-react'
 import { getProducts, getCategories, getShops } from '@/api/products'
 import { addToBasket } from '@/api/basket'
@@ -27,15 +29,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const { isAuthenticated, isBuyer } = useAuthStore()
   const queryClient = useQueryClient()
 
-  // Состояние для показа выпадающего списка магазинов (при нескольких ProductInfo)
+  // Выбранное количество для добавления в корзину
+  const [qty, setQty] = useState(1)
+  // Показ выпадающего списка магазинов (при нескольких ProductInfo)
   const [showShopDropdown, setShowShopDropdown] = useState(false)
 
   const addMutation = useMutation({
-    mutationFn: (productInfoId: number) => addToBasket(productInfoId, 1),
+    mutationFn: ({ productInfoId, quantity }: { productInfoId: number; quantity: number }) =>
+      addToBasket(productInfoId, quantity),
     onSuccess: () => {
-      toast.success('Товар добавлен в корзину')
+      toast.success(`Добавлено в корзину: ${qty} шт.`)
       setShowShopDropdown(false)
-      // Инвалидируем кеш корзины
+      setQty(1)
       queryClient.invalidateQueries({ queryKey: ['basket'] })
     },
     onError: () => {
@@ -43,8 +48,23 @@ const ProductCard = ({ product }: ProductCardProps) => {
     },
   })
 
-  // Обработчик нажатия кнопки "В корзину"
-  const handleAddToCart = () => {
+  // Максимальное доступное количество (для единственного магазина)
+  const maxQty =
+    product.product_infos.length === 1 ? product.product_infos[0].quantity : 999
+
+  const handleQtyDown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setQty((q) => Math.max(1, q - 1))
+  }
+
+  const handleQtyUp = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setQty((q) => Math.min(maxQty, q + 1))
+  }
+
+  // Обработчик нажатия кнопки «В корзину»
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!isAuthenticated) {
       navigate('/login')
       return
@@ -54,17 +74,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
       return
     }
     if (product.product_infos.length === 1) {
-      // Один магазин — добавляем сразу
-      addMutation.mutate(product.product_infos[0].id)
+      addMutation.mutate({ productInfoId: product.product_infos[0].id, quantity: qty })
     } else {
-      // Несколько магазинов — показываем список для выбора
       setShowShopDropdown((prev) => !prev)
     }
   }
 
   // Обработчик выбора конкретного магазина из выпадающего списка
   const handleSelectShop = (info: ProductInfo) => {
-    addMutation.mutate(info.id)
+    addMutation.mutate({ productInfoId: info.id, quantity: qty })
   }
 
   const minPrice = getMinPrice(product.product_infos)
@@ -90,30 +108,58 @@ const ProductCard = ({ product }: ProductCardProps) => {
         {product.name}
       </h3>
 
-      {/* Цена и кнопка добавления в корзину */}
-      <div className="flex items-center justify-between mt-auto">
-        <span className="text-lg font-bold text-gray-900">
-          {product.product_infos.length > 0 ? formatPrice(minPrice) : 'Нет в наличии'}
-        </span>
-        {isBuyer !== false && (
-          <button
-            onClick={handleAddToCart}
-            disabled={addMutation.isPending || product.product_infos.length === 0}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Добавить в корзину"
-          >
-            <ShoppingCart size={18} />
-          </button>
-        )}
+      {/* Цена, счётчик количества и кнопка добавления в корзину */}
+      <div className="mt-auto">
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold text-gray-900">
+            {product.product_infos.length > 0 ? formatPrice(minPrice) : 'Нет в наличии'}
+          </span>
+
+          {/* Счётчик + кнопка корзины */}
+          {isBuyer !== false && product.product_infos.length > 0 && (
+            <div className="flex items-center gap-1">
+              {/* Кнопка уменьшить */}
+              <button
+                type="button"
+                onClick={handleQtyDown}
+                disabled={qty <= 1}
+                className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Minus size={11} />
+              </button>
+              {/* Текущее количество */}
+              <span className="w-6 text-center text-sm font-medium text-gray-800">{qty}</span>
+              {/* Кнопка увеличить */}
+              <button
+                type="button"
+                onClick={handleQtyUp}
+                disabled={qty >= maxQty}
+                className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus size={11} />
+              </button>
+
+              {/* Кнопка «В корзину» */}
+              <button
+                onClick={handleAddToCart}
+                disabled={addMutation.isPending}
+                className="ml-1 p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Добавить в корзину"
+              >
+                <ShoppingCart size={17} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Выпадающий список магазинов при нескольких ProductInfo */}
       {showShopDropdown && (
         <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-            <span className="text-xs font-medium text-gray-500">Выберите магазин</span>
+            <span className="text-xs font-medium text-gray-500">Выберите магазин ({qty} шт.)</span>
             <button
-              onClick={() => setShowShopDropdown(false)}
+              onClick={(e) => { e.stopPropagation(); setShowShopDropdown(false) }}
               className="text-gray-400 hover:text-gray-600"
             >
               <X size={14} />
@@ -123,8 +169,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
             <button
               key={info.id}
               onClick={() => handleSelectShop(info)}
-              disabled={addMutation.isPending}
-              className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+              disabled={addMutation.isPending || info.quantity < qty}
+              className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 disabled:opacity-40"
             >
               <div className="text-sm font-medium text-gray-900">{info.shop}</div>
               <div className="text-xs text-gray-500">
@@ -149,7 +195,7 @@ const SkeletonCard = () => (
     <div className="h-4 bg-gray-200 rounded mb-4 w-3/4" />
     <div className="flex justify-between items-center">
       <div className="h-6 bg-gray-200 rounded w-20" />
-      <div className="h-8 w-8 bg-gray-200 rounded-lg" />
+      <div className="h-8 w-24 bg-gray-200 rounded-lg" />
     </div>
   </div>
 )
@@ -211,15 +257,9 @@ const CatalogPage = () => {
     setPage(1)
   }
 
-  // Применение поиска по нажатию Enter или кнопки
+  // Применение поиска
   const handleSearch = () => {
     setSearch(searchInput)
-    setPage(1)
-  }
-
-  // Переключение категории (checkbox)
-  const handleCategoryToggle = (id: number) => {
-    setSelectedCategory((prev) => (prev === id ? undefined : id))
     setPage(1)
   }
 
@@ -229,8 +269,10 @@ const CatalogPage = () => {
     setPage(1)
   }
 
-  // Компонент панели фильтров (используется и на десктопе и в мобильном попапе)
-  const FiltersPanel = () => (
+  // JSX панели фильтров (поиск + магазины) — inline переменная, не отдельный компонент
+  // ВАЖНО: не выносить в const Component = () => внутри CatalogPage —
+  // это приведёт к пересозданию компонента на каждый рендер и потере фокуса input
+  const filtersPanelJsx = (
     <div className="space-y-5">
       {/* Поиск */}
       <div>
@@ -254,29 +296,6 @@ const CatalogPage = () => {
           </button>
         )}
       </div>
-
-      {/* Фильтр по категориям */}
-      {categories.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Категории</h3>
-          <div className="space-y-1 max-h-48 overflow-y-auto">
-            {categories.map((cat) => (
-              <label
-                key={cat.id}
-                className="flex items-center gap-2 cursor-pointer py-0.5 hover:text-blue-600 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedCategory === cat.id}
-                  onChange={() => handleCategoryToggle(cat.id)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">{cat.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Фильтр по магазинам */}
       {shops.length > 0 && (
@@ -317,7 +336,7 @@ const CatalogPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Заголовок страницы */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Каталог товаров</h1>
           {!isLoading && (
@@ -336,12 +355,41 @@ const CatalogPage = () => {
         </button>
       </div>
 
+      {/* Горизонтальные чипы категорий */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => { setSelectedCategory(undefined); setPage(1) }}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              !selectedCategory
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+            }`}
+          >
+            Все
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => { setSelectedCategory(cat.id); setPage(1) }}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                selectedCategory === cat.id
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-6">
         {/* Левая боковая панель фильтров — скрыта на мобильном */}
         <aside className="hidden md:block w-56 flex-shrink-0">
           <div className="sticky top-4 bg-white border border-gray-200 rounded-xl p-4">
             <h2 className="text-base font-semibold text-gray-900 mb-4">Фильтры</h2>
-            <FiltersPanel />
+            {filtersPanelJsx}
           </div>
         </aside>
 
@@ -362,7 +410,7 @@ const CatalogPage = () => {
                   <X size={20} />
                 </button>
               </div>
-              <FiltersPanel />
+              {filtersPanelJsx}
               <button
                 onClick={() => setFiltersOpen(false)}
                 className="mt-4 w-full py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
@@ -376,20 +424,12 @@ const CatalogPage = () => {
         {/* Основная область с товарами */}
         <main className="flex-1 min-w-0">
           {/* Активные фильтры (теги) */}
-          {(selectedCategory || selectedShop || search) && (
+          {(selectedShop || search) && (
             <div className="flex flex-wrap gap-2 mb-4">
               {search && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full border border-blue-200">
                   Поиск: «{search}»
                   <button onClick={() => { setSearch(''); setSearchInput(''); setPage(1) }}>
-                    <X size={12} />
-                  </button>
-                </span>
-              )}
-              {selectedCategory && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-                  {categories.find((c) => c.id === selectedCategory)?.name}
-                  <button onClick={() => { setSelectedCategory(undefined); setPage(1) }}>
                     <X size={12} />
                   </button>
                 </span>

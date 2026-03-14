@@ -16,6 +16,7 @@ const ProfilePageLazy = lazy(() => import('./pages/profile/ProfilePage'))
 const PartnerDashboardLazy = lazy(() => import('./pages/partner/PartnerDashboard'))
 const UploadPageLazy = lazy(() => import('./pages/partner/UploadPage'))
 const PartnerOrdersPageLazy = lazy(() => import('./pages/partner/PartnerOrdersPage'))
+const PartnerOrderDetailPageLazy = lazy(() => import('./pages/partner/PartnerOrderDetailPage'))
 const AdminOrdersPageLazy = lazy(() => import('./pages/admin/AdminOrdersPage'))
 
 // Компонент загрузки при ленивом импорте
@@ -97,6 +98,10 @@ const router = createBrowserRouter([
           {
             path: 'partner/orders',
             element: <Suspense fallback={<LoadingFallback />}><PartnerOrdersPageLazy /></Suspense>,
+          },
+          {
+            path: 'partner/orders/:id',
+            element: <Suspense fallback={<LoadingFallback />}><PartnerOrderDetailPageLazy /></Suspense>,
           },
         ],
       },

@@ -141,7 +141,7 @@ class PartnerStateView(APIView):
 
 
 class PartnerOrdersView(APIView):
-    """Список заказов, содержащих товары данного поставщика."""
+    """Список заказов поставщика + смена статуса."""
 
     @extend_schema(
         summary='Заказы поставщика',
@@ -173,6 +173,97 @@ class PartnerOrdersView(APIView):
             )
         )
         serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=inline_serializer('PartnerOrderStatusRequest', fields={
+            'id': drf_serializers.IntegerField(),
+            'state': drf_serializers.ChoiceField(choices=['confirmed', 'assembled', 'sent', 'cancelled']),
+        }),
+        summary='Изменить статус заказа (поставщик)',
+        tags=['Партнёр'],
+    )
+    def put(self, request):
+        """Поставщик меняет статус заказа. {"id": order_id, "state": "confirmed"}"""
+        if request.user.type != 'supplier':
+            return Response({'error': 'Только для поставщиков'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            shop = request.user.shop
+        except Shop.DoesNotExist:
+            return Response({'error': 'Магазин не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.orders.models import Order
+        from apps.orders.serializers import OrderSerializer
+
+        order_id = request.data.get('id')
+        new_state = request.data.get('state')
+
+        # Поставщик может переводить только в разрешённые статусы
+        allowed_states = ['confirmed', 'assembled', 'sent', 'cancelled']
+        if new_state not in allowed_states:
+            return Response(
+                {'error': f'Недопустимый статус. Доступны: {allowed_states}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            order = Order.objects.get(
+                id=order_id,
+                order_items__product_info__shop=shop,
+            )
+        except Order.DoesNotExist:
+            return Response({'error': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        order.state = new_state
+        order.save(update_fields=['state'])
+
+        # Уведомляем покупателя (не блокируем если брокер недоступен)
+        try:
+            from tasks.email_tasks import send_status_notification_task
+            send_status_notification_task.delay(order.id)
+        except Exception:
+            pass
+
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+
+class PartnerOrderDetailView(APIView):
+    """Детали конкретного заказа поставщика."""
+
+    @extend_schema(
+        summary='Детали заказа поставщика',
+        tags=['Партнёр'],
+    )
+    def get(self, request, pk):
+        if request.user.type != 'supplier':
+            return Response({'error': 'Только для поставщиков'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            shop = request.user.shop
+        except Shop.DoesNotExist:
+            return Response({'error': 'Магазин не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.orders.models import Order
+        from apps.orders.serializers import OrderSerializer
+
+        try:
+            order = (
+                Order.objects.prefetch_related(
+                    'order_items__product_info__product',
+                    'order_items__product_info__shop',
+                    'order_items__product_info__product_parameters__parameter',
+                    'contact',
+                )
+                .exclude(state='basket')
+                .distinct()
+                .get(pk=pk, order_items__product_info__shop=shop)
+            )
+        except Order.DoesNotExist:
+            return Response({'error': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OrderSerializer(order)
         return Response(serializer.data)
 
 

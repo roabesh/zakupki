@@ -40,3 +40,15 @@ export const getPartnerOrders = async (): Promise<Order[]> => {
   const res = await client.get<Order[]>('/partner/orders/')
   return res.data
 }
+
+// Изменить статус заказа партнёром
+export const updatePartnerOrderStatus = async (id: number, state: string): Promise<Order> => {
+  const res = await client.put<Order>('/partner/orders/', { id, state })
+  return res.data
+}
+
+// Получить детали одного заказа партнёра
+export const getPartnerOrderById = async (id: number): Promise<Order> => {
+  const res = await client.get<Order>(`/partner/orders/${id}/`)
+  return res.data
+}
