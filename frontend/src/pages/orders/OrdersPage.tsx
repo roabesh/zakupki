@@ -1,69 +1,60 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ShoppingBag, Clock } from 'lucide-react'
+import { ShoppingBag, ChevronRight } from 'lucide-react'
 import { getOrders } from '@/api/orders'
 import { formatPrice, formatDate, orderStateConfig } from '@/utils'
 import type { Order, OrderState } from '@/types'
 
-// Скелетон карточки заказа при загрузке
-const OrderCardSkeleton = () => (
-  <div className="rounded-xl border border-gray-200 shadow-sm bg-white p-5 animate-pulse">
-    <div className="flex justify-between items-start mb-3">
-      <div className="h-5 bg-gray-200 rounded w-28" />
-      <div className="h-5 bg-gray-200 rounded w-20" />
-    </div>
-    <div className="h-4 bg-gray-200 rounded w-40 mb-2" />
-    <div className="h-4 bg-gray-200 rounded w-24" />
-  </div>
+// Скелетон строки таблицы при загрузке
+const RowSkeleton = () => (
+  <tr className="animate-pulse border-b border-gray-100">
+    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded w-16" /></td>
+    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded w-32" /></td>
+    <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
+    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded w-12 ml-auto" /></td>
+    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded w-24 ml-auto" /></td>
+    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded w-4 ml-auto" /></td>
+  </tr>
 )
 
 // Бейдж статуса заказа
-interface StatusBadgeProps {
-  state: OrderState
-}
-
-const StatusBadge = ({ state }: StatusBadgeProps) => {
+const StatusBadge = ({ state }: { state: OrderState }) => {
   if (state === 'basket') return null
   const config = orderStateConfig[state]
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${config.bg} ${config.color}`}>
       {config.label}
     </span>
   )
 }
 
-// Карточка заказа
-interface OrderCardProps {
-  order: Order
-  onClick: () => void
-}
-
-const OrderCard = ({ order, onClick }: OrderCardProps) => (
-  <div
-    onClick={onClick}
-    className="rounded-xl border border-gray-200 shadow-sm bg-white p-5 cursor-pointer hover:shadow-md hover:border-primary-200 transition-all"
-  >
-    <div className="flex justify-between items-start gap-4 mb-2">
-      <h3 className="font-semibold text-gray-900">Заказ #{order.id}</h3>
-      {order.state !== 'basket' && <StatusBadge state={order.state} />}
-    </div>
-
-    <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-3">
-      <Clock className="w-3.5 h-3.5" />
-      <span>{formatDate(order.created_at)}</span>
-    </div>
-
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-600">
-        {order.order_items.length}{' '}
-        {order.order_items.length === 1 ? 'позиция' : 'позиций'}
-      </span>
-      <span className="font-semibold text-gray-900">
+// Строка таблицы заказов
+const OrderRow = ({ order, onClick }: { order: Order; onClick: () => void }) => {
+  const count = order.order_items.length
+  return (
+    <tr
+      onClick={onClick}
+      className="border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
+    >
+      <td className="px-5 py-3 font-medium text-gray-900 whitespace-nowrap">#{order.id}</td>
+      <td className="px-5 py-3 text-sm text-gray-500 whitespace-nowrap">
+        {formatDate(order.created_at)}
+      </td>
+      <td className="px-5 py-3">
+        {order.state !== 'basket' && <StatusBadge state={order.state} />}
+      </td>
+      <td className="px-5 py-3 text-sm text-gray-600 text-right whitespace-nowrap">
+        {count} {count === 1 ? 'позиция' : 'позиций'}
+      </td>
+      <td className="px-5 py-3 font-semibold text-gray-900 text-right whitespace-nowrap">
         {formatPrice(parseFloat(order.total_sum))}
-      </span>
-    </div>
-  </div>
-)
+      </td>
+      <td className="px-5 py-3 text-gray-400 text-right">
+        <ChevronRight className="w-4 h-4 inline-block" />
+      </td>
+    </tr>
+  )
+}
 
 // Страница списка заказов
 const OrdersPage = () => {
@@ -75,7 +66,7 @@ const OrdersPage = () => {
   })
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Заголовок */}
       <div className="flex items-center gap-3 mb-6">
         <ShoppingBag className="w-7 h-7 text-primary-600" />
@@ -87,19 +78,11 @@ const OrdersPage = () => {
         )}
       </div>
 
-      {isLoading ? (
-        // Скелетон загрузки
-        <div className="space-y-3">
-          <OrderCardSkeleton />
-          <OrderCardSkeleton />
-          <OrderCardSkeleton />
-        </div>
-      ) : isError ? (
-        // Ошибка загрузки
+      {isError ? (
         <div className="rounded-xl border border-gray-200 shadow-sm bg-white p-8 text-center text-gray-500">
           Не удалось загрузить заказы. Попробуйте обновить страницу.
         </div>
-      ) : !orders || orders.length === 0 ? (
+      ) : !isLoading && (!orders || orders.length === 0) ? (
         // Пустое состояние
         <div className="rounded-xl border border-gray-200 shadow-sm bg-white p-12 text-center">
           <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -113,15 +96,35 @@ const OrdersPage = () => {
           </Link>
         </div>
       ) : (
-        // Список заказов
-        <div className="space-y-3">
-          {orders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onClick={() => navigate(`/orders/${order.id}`)}
-            />
-          ))}
+        // Табличный список заказов
+        <div className="rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                  <th className="px-5 py-3 text-left font-medium">Заказ</th>
+                  <th className="px-5 py-3 text-left font-medium">Дата</th>
+                  <th className="px-5 py-3 text-left font-medium">Статус</th>
+                  <th className="px-5 py-3 text-right font-medium">Позиций</th>
+                  <th className="px-5 py-3 text-right font-medium">Сумма</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <>{Array.from({ length: 3 }).map((_, i) => <RowSkeleton key={i} />)}</>
+                ) : (
+                  orders!.map((order) => (
+                    <OrderRow
+                      key={order.id}
+                      order={order}
+                      onClick={() => navigate(`/orders/${order.id}`)}
+                    />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

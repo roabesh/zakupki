@@ -145,31 +145,43 @@ const PartnerOrderDetailPage = () => {
           <h2 className="font-semibold text-gray-900">Состав заказа</h2>
         </div>
 
-        <div className="divide-y divide-gray-100">
-          {order.order_items.map((item) => {
-            const name = item.product_info.product?.name ?? item.product_info.model
-            const priceEach = parseFloat(item.product_info.price_rrc)
-            const priceTotal = priceEach * item.quantity
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <th className="px-5 py-2.5 text-left font-medium">Товар</th>
+                <th className="px-5 py-2.5 text-left font-medium">Магазин</th>
+                <th className="px-5 py-2.5 text-right font-medium whitespace-nowrap">Цена</th>
+                <th className="px-5 py-2.5 text-right font-medium whitespace-nowrap">Кол-во</th>
+                <th className="px-5 py-2.5 text-right font-medium whitespace-nowrap">Сумма</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {order.order_items.map((item) => {
+                const name = item.product_info.product?.name ?? item.product_info.model
+                const priceEach = parseFloat(item.product_info.price_rrc)
+                const priceTotal = priceEach * item.quantity
 
-            return (
-              <div key={item.id} className="px-5 py-4 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{item.product_info.shop}</p>
-                </div>
-                <div className="text-sm text-gray-600 whitespace-nowrap">
-                  {formatPrice(priceEach)} × {item.quantity}
-                </div>
-                <div className="text-sm font-semibold text-gray-900 whitespace-nowrap w-24 text-right">
-                  {formatPrice(priceTotal)}
-                </div>
-              </div>
-            )
-          })}
+                return (
+                  <tr key={item.id}>
+                    <td className="px-5 py-3 font-medium text-gray-900">{name}</td>
+                    <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{item.product_info.shop}</td>
+                    <td className="px-5 py-3 text-gray-700 text-right whitespace-nowrap">
+                      {formatPrice(priceEach)}
+                    </td>
+                    <td className="px-5 py-3 text-gray-700 text-right">{item.quantity}</td>
+                    <td className="px-5 py-3 font-semibold text-gray-900 text-right whitespace-nowrap">
+                      {formatPrice(priceTotal)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* Итого */}
-        <div className="px-5 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
+        <div className="px-5 py-4 border-t border-gray-100 flex justify-between items-center bg-gray-50">
           <span className="font-semibold text-gray-900">Итого</span>
           <span className="font-bold text-gray-900 text-lg">
             {formatPrice(parseFloat(order.total_sum))}
