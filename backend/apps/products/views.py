@@ -8,6 +8,29 @@ from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
 
 
+class CyrillicSearchFilter(SearchFilter):
+    """
+    SearchFilter с поддержкой кириллицы в SQLite.
+    SQLite's LIKE чувствителен к регистру для non-ASCII символов,
+    поэтому ищем по нескольким вариантам регистра.
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        search_terms = self.get_search_terms(request)
+        if not search_terms:
+            return queryset
+
+        for term in search_terms:
+            # Генерируем варианты регистра для поддержки кириллицы
+            variants = {term, term.lower(), term.upper(), term.capitalize(), term.title()}
+            q = Q()
+            for v in variants:
+                q |= Q(name__icontains=v) | Q(product_infos__model__icontains=v)
+            queryset = queryset.filter(q).distinct()
+
+        return queryset
+
+
 class CategoryListView(ListAPIView):
     """Список всех категорий с количеством активных товаров."""
 
@@ -38,7 +61,7 @@ class ProductListView(ListAPIView):
 
     serializer_class = ProductSerializer
     permission_classes = []  # доступно без авторизации
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend, CyrillicSearchFilter]
     filterset_fields = {
         'product_infos__shop': ['exact'],
         'category': ['exact'],

@@ -26,10 +26,12 @@ export const getProductById = async (id: number): Promise<Product> => {
   return res.data
 }
 
-// Получение списка категорий
+// Получение списка категорий (API возвращает пагинированный ответ)
 export const getCategories = async (): Promise<Category[]> => {
-  const res = await client.get<Category[]>('/categories/')
-  return res.data
+  const res = await client.get<{ results: Category[] } | Category[]>('/categories/')
+  // Поддержка как пагинированного {results:[...]}, так и простого массива
+  const data = res.data as Record<string, unknown>
+  return Array.isArray(data) ? (data as Category[]) : ((data.results as Category[]) ?? [])
 }
 
 // Получение списка магазинов
