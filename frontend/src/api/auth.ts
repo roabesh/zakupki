@@ -34,3 +34,13 @@ export const updateProfile = async (data: Partial<User>): Promise<User> => {
   const res = await client.put<User>('/user/details/', data)
   return res.data
 }
+
+// Запрос письма для сброса пароля
+export const forgotPassword = async (email: string): Promise<void> => {
+  await client.post('/user/password_reset/', { email })
+}
+
+// Подтверждение нового пароля по токену из письма
+export const resetPassword = async (token: string, password: string): Promise<void> => {
+  await client.post('/user/password_reset/confirm/', { token, password })
+}

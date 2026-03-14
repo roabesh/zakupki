@@ -34,9 +34,13 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             token, _ = Token.objects.get_or_create(user=user)
-            # Отправляем приветственный email асинхронно
-            from tasks.email_tasks import send_registration_email_task
-            send_registration_email_task.delay(user.id)
+            # Отправляем приветственный email: Celery или синхронно
+            try:
+                from tasks.email_tasks import send_registration_email_task
+                send_registration_email_task.delay(user.id)
+            except Exception:
+                from tasks.email_tasks import _send_registration_email
+                _send_registration_email(user)
             return Response(
                 {'status': 'ok', 'token': token.key},
                 status=status.HTTP_201_CREATED,

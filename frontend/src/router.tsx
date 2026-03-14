@@ -18,6 +18,8 @@ const UploadPageLazy = lazy(() => import('./pages/partner/UploadPage'))
 const PartnerOrdersPageLazy = lazy(() => import('./pages/partner/PartnerOrdersPage'))
 const PartnerOrderDetailPageLazy = lazy(() => import('./pages/partner/PartnerOrderDetailPage'))
 const AdminOrdersPageLazy = lazy(() => import('./pages/admin/AdminOrdersPage'))
+const ForgotPasswordPageLazy = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPageLazy = lazy(() => import('./pages/auth/ResetPasswordPage'))
 
 // Компонент загрузки при ленивом импорте
 const LoadingFallback = () => (
@@ -47,6 +49,14 @@ const router = createBrowserRouter([
       {
         path: 'register',
         element: <Suspense fallback={<LoadingFallback />}><RegisterPageLazy /></Suspense>,
+      },
+      {
+        path: 'forgot-password',
+        element: <Suspense fallback={<LoadingFallback />}><ForgotPasswordPageLazy /></Suspense>,
+      },
+      {
+        path: 'reset-password',
+        element: <Suspense fallback={<LoadingFallback />}><ResetPasswordPageLazy /></Suspense>,
       },
 
       // Маршруты покупателя

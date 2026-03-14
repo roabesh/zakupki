@@ -3,6 +3,48 @@ from django.conf import settings
 from django.core.mail import send_mail
 
 
+# ─── Синхронные хелперы (вызываются напрямую при недоступном Celery) ─────────
+
+def _send_registration_email(user):
+    """Приветственное письмо после регистрации."""
+    name = user.first_name or user.email
+    send_mail(
+        subject='Добро пожаловать в Zakupki!',
+        message=(
+            f'Здравствуйте, {name}!\n\n'
+            f'Вы успешно зарегистрировались в сервисе Zakupki.\n'
+            f'Ваш email: {user.email}\n\n'
+            f'Теперь вы можете просматривать каталог товаров и делать заказы.\n\n'
+            f'— Команда Zakupki'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=True,
+    )
+
+
+def _send_password_reset_email(user, reset_url: str):
+    """Письмо со ссылкой для сброса пароля."""
+    name = user.first_name or user.email
+    send_mail(
+        subject='Сброс пароля — Zakupki',
+        message=(
+            f'Здравствуйте, {name}!\n\n'
+            f'Мы получили запрос на сброс пароля для вашего аккаунта.\n\n'
+            f'Для создания нового пароля перейдите по ссылке:\n'
+            f'{reset_url}\n\n'
+            f'Ссылка действительна 24 часа.\n\n'
+            f'Если вы не запрашивали сброс пароля — просто проигнорируйте это письмо.\n\n'
+            f'— Команда Zakupki'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=True,
+    )
+
+
+# ─── Celery-задачи ────────────────────────────────────────────────────────────
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_order_confirmation_task(self, order_id: int):
     """
@@ -32,7 +74,8 @@ def send_order_confirmation_task(self, order_id: int):
             message=(
                 f'Ваш заказ #{order.id} успешно оформлен.\n\n'
                 f'Состав заказа:\n{items_text}\n\n'
-                f'Итого: {order.total_sum} ₽'
+                f'Итого: {order.total_sum} ₽\n\n'
+                f'— Команда Zakupki'
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[order.user.email],
@@ -60,9 +103,7 @@ def send_order_confirmation_task(self, order_id: int):
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_registration_email_task(self, user_id: int):
-    """
-    Асинхронная отправка приветственного email после регистрации пользователя.
-    """
+    """Асинхронная отправка приветственного email после регистрации."""
     from apps.users.models import User
 
     try:
@@ -71,27 +112,30 @@ def send_registration_email_task(self, user_id: int):
         return
 
     try:
-        send_mail(
-            subject='Добро пожаловать в Zakupki!',
-            message=(
-                f'Здравствуйте!\n\n'
-                f'Вы успешно зарегистрировались в сервисе Zakupki.\n'
-                f'Ваш email: {user.email}\n\n'
-                f'Теперь вы можете просматривать каталог товаров и делать заказы.'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        _send_registration_email(user)
+    except Exception as exc:
+        raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_password_reset_email_task(self, user_id: int, reset_url: str):
+    """Асинхронная отправка письма для сброса пароля."""
+    from apps.users.models import User
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return
+
+    try:
+        _send_password_reset_email(user, reset_url)
     except Exception as exc:
         raise self.retry(exc=exc)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_status_notification_task(self, order_id: int):
-    """
-    Асинхронное уведомление покупателя об изменении статуса заказа.
-    """
+    """Асинхронное уведомление покупателя об изменении статуса заказа."""
     from apps.orders.models import Order
 
     try:
@@ -99,12 +143,24 @@ def send_status_notification_task(self, order_id: int):
     except Order.DoesNotExist:
         return
 
+    state_labels = {
+        'new': 'Новый',
+        'confirmed': 'Подтверждён поставщиком',
+        'assembled': 'Собран',
+        'sent': 'Отправлен',
+        'partially_sent': 'Отправлен частично',
+        'delivered': 'Доставлен',
+        'cancelled': 'Отменён',
+    }
+    label = state_labels.get(order.state, order.state)
+
     try:
         send_mail(
             subject=f'Статус заказа #{order.id} изменён',
             message=(
-                f'Статус вашего заказа #{order.id} изменён '
-                f'на «{order.get_state_display()}».'
+                f'Статус вашего заказа #{order.id} обновлён:\n\n'
+                f'  {label}\n\n'
+                f'— Команда Zakupki'
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[order.user.email],

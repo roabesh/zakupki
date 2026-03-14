@@ -135,3 +135,6 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@zakupki.ru')
 ADMIN_EMAIL = env('ADMIN_EMAIL', default='admin@zakupki.ru')
+
+# URL фронтенда (используется в письмах для формирования ссылок)
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
