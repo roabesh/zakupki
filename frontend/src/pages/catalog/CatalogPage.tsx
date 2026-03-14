@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -208,16 +208,31 @@ const CatalogPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>()
   const [selectedShop, setSelectedShop] = useState<number | undefined>()
   const [page, setPage] = useState(1)
+  // Сортировка на клиенте
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'name'>('default')
   // Для мобильного: показ/скрытие панели фильтров
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const PAGE_SIZE = 20
 
-  // Загрузка категорий
-  const { data: categories = [] } = useQuery({
+  // Дебаунс поиска: применяем через 400ms после последнего ввода
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput)
+      setPage(1)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  // Прокрутка в начало страницы при смене страницы, категории, магазина или поиска
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [page, selectedCategory, selectedShop, search])
+
+  // Загрузка категорий (без кеширования устаревших данных)
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
-    staleTime: 5 * 60 * 1000,
   })
 
   // Загрузка магазинов
@@ -244,9 +259,23 @@ const CatalogPage = () => {
     staleTime: 60 * 1000,
   })
 
-  const products = data?.results ?? []
+  const rawProducts = data?.results ?? []
   const totalCount = data?.count ?? 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  // Сортировка товаров на клиенте
+  const products = [...rawProducts].sort((a, b) => {
+    if (sortBy === 'price_asc') {
+      return parseFloat(getMinPrice(a.product_infos)) - parseFloat(getMinPrice(b.product_infos))
+    }
+    if (sortBy === 'price_desc') {
+      return parseFloat(getMinPrice(b.product_infos)) - parseFloat(getMinPrice(a.product_infos))
+    }
+    if (sortBy === 'name') {
+      return a.name.localeCompare(b.name, 'ru')
+    }
+    return 0
+  })
 
   // Сброс всех фильтров
   const handleReset = () => {
@@ -254,12 +283,6 @@ const CatalogPage = () => {
     setSearch('')
     setSelectedCategory(undefined)
     setSelectedShop(undefined)
-    setPage(1)
-  }
-
-  // Применение поиска
-  const handleSearch = () => {
-    setSearch(searchInput)
     setPage(1)
   }
 
@@ -274,7 +297,7 @@ const CatalogPage = () => {
   // это приведёт к пересозданию компонента на каждый рендер и потере фокуса input
   const filtersPanelJsx = (
     <div className="space-y-5">
-      {/* Поиск */}
+      {/* Поиск с дебаунсом */}
       <div>
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -282,19 +305,10 @@ const CatalogPage = () => {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="Поиск товаров..."
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-        {searchInput !== search && (
-          <button
-            onClick={handleSearch}
-            className="mt-2 w-full text-sm text-blue-600 hover:text-blue-700 py-1 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            Найти
-          </button>
-        )}
       </div>
 
       {/* Фильтр по магазинам */}
@@ -336,7 +350,7 @@ const CatalogPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Заголовок страницы */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Каталог товаров</h1>
           {!isLoading && (
@@ -345,18 +359,42 @@ const CatalogPage = () => {
             </p>
           )}
         </div>
-        {/* Кнопка фильтров на мобильном */}
-        <button
-          onClick={() => setFiltersOpen(true)}
-          className="md:hidden flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Filter size={16} />
-          Фильтры
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Сортировка */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+          >
+            <option value="default">По умолчанию</option>
+            <option value="price_asc">Цена ↑</option>
+            <option value="price_desc">Цена ↓</option>
+            <option value="name">По названию</option>
+          </select>
+          {/* Кнопка фильтров на мобильном */}
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="md:hidden flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Filter size={16} />
+            Фильтры
+          </button>
+        </div>
       </div>
 
       {/* Горизонтальные чипы категорий */}
-      {categories.length > 0 && (
+      {categoriesLoading ? (
+        // Скелетоны пока категории загружаются
+        <div className="flex flex-wrap gap-2 mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-8 bg-gray-200 rounded-full animate-pulse"
+              style={{ width: `${60 + i * 15}px` }}
+            />
+          ))}
+        </div>
+      ) : categories.length > 0 ? (
         <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => { setSelectedCategory(undefined); setPage(1) }}
@@ -379,10 +417,15 @@ const CatalogPage = () => {
               }`}
             >
               {cat.name}
+              {cat.product_count !== undefined && (
+                <span className={`ml-1.5 text-xs ${selectedCategory === cat.id ? 'text-blue-200' : 'text-gray-400'}`}>
+                  {cat.product_count}
+                </span>
+              )}
             </button>
           ))}
         </div>
-      )}
+      ) : null}
 
       <div className="flex gap-6">
         {/* Левая боковая панель фильтров — скрыта на мобильном */}

@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
@@ -8,11 +9,24 @@ from .serializers import CategorySerializer, ProductSerializer
 
 
 class CategoryListView(ListAPIView):
-    """Список всех категорий."""
+    """Список всех категорий с количеством активных товаров."""
 
-    queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = []  # доступно без авторизации
+
+    def get_queryset(self):
+        # Аннотируем каждую категорию числом уникальных товаров
+        # с остатком > 0 в магазинах, принимающих заказы
+        return Category.objects.annotate(
+            product_count=Count(
+                'products',
+                filter=Q(
+                    products__product_infos__shop__state=True,
+                    products__product_infos__quantity__gt=0,
+                ),
+                distinct=True,
+            )
+        ).order_by('name')
 
 
 class ProductListView(ListAPIView):

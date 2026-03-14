@@ -208,10 +208,10 @@ class PartnerOrdersView(APIView):
             )
 
         try:
-            order = Order.objects.get(
+            order = Order.objects.filter(
                 id=order_id,
                 order_items__product_info__shop=shop,
-            )
+            ).distinct().get()
         except Order.DoesNotExist:
             return Response({'error': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -264,7 +264,28 @@ class PartnerOrderDetailView(APIView):
             return Response({'error': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        data = dict(serializer.data)
+
+        # Оставляем только позиции текущего поставщика
+        shop_pi_ids = set(
+            order.order_items.filter(product_info__shop=shop)
+            .values_list('product_info_id', flat=True)
+        )
+        supplier_items = [
+            item for item in data['order_items']
+            if item['product_info']['id'] in shop_pi_ids
+        ]
+        data['order_items'] = supplier_items
+
+        # Пересчитываем сумму только по своим позициям
+        from decimal import Decimal
+        total = sum(
+            Decimal(str(item['product_info']['price_rrc'])) * item['quantity']
+            for item in supplier_items
+        )
+        data['total_sum'] = str(total)
+
+        return Response(data)
 
 
 class PartnerExportView(APIView):
